@@ -35,9 +35,10 @@ export async function ensureTables() {
   handoff_kind TEXT,
   handoff_payload JSONB,
   meta JSONB,
-  meeting_mode TEXT,
-  meeting_date TEXT,
-  meeting_time TEXT,
+  transaction_type TEXT,
+  property_type TEXT,
+  location TEXT,
+  budget TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -52,11 +53,12 @@ export async function ensureTables() {
 
       ALTER TABLE messages
         ADD COLUMN IF NOT EXISTS meta JSONB,
-        ADD COLUMN IF NOT EXISTS meeting_mode TEXT,
-        ADD COLUMN IF NOT EXISTS meeting_date TEXT,
-        ADD COLUMN IF NOT EXISTS meeting_time TEXT,
         ADD COLUMN IF NOT EXISTS admin_status TEXT DEFAULT 'NEW',
-        ADD COLUMN IF NOT EXISTS admin_notes TEXT;
+        ADD COLUMN IF NOT EXISTS admin_notes TEXT,
+        ADD COLUMN IF NOT EXISTS budget TEXT,
+        ADD COLUMN IF NOT EXISTS transaction_type TEXT,
+        ADD COLUMN IF NOT EXISTS property_type TEXT,
+        ADD COLUMN IF NOT EXISTS location TEXT;
     `);
 
     // 3) Index’leri garanti et (kolonlar artık kesin var)
@@ -123,19 +125,20 @@ export async function logChatMessage({
 
       const conversationId = convRes.rows[0].id;
 
-      // Extract meeting details if available
-      const pm = handoff?.payload?.preferred_meeting || {};
-      const meetingMode = pm.mode || null;
-      const meetingDate = pm.date || null;
-      const meetingTime = pm.time || null;
+      // Extract property details if available
+      const pd = handoff?.payload?.property_details || {};
+      const tType = pd.transaction_type || null;
+      const pType = pd.property_type || null;
+      const loc = pd.location || null;
+      const bud = pd.budget || null;
 
       // 2) Mesajı ekle
       await client.query(
         `
   INSERT INTO messages
-    (conversation_id, role, text, raw_text, handoff_kind, handoff_payload, meta, meeting_mode, meeting_date, meeting_time, created_at)
+    (conversation_id, role, text, raw_text, handoff_kind, handoff_payload, meta, transaction_type, property_type, location, budget, created_at)
   VALUES
-    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
+    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
   `,
         [
           conversationId,
@@ -145,9 +148,10 @@ export async function logChatMessage({
           handoff ? handoff.kind || null : null,
           handoff ? JSON.stringify(handoff.payload || null) : null,
           meta ? JSON.stringify(meta) : null,
-          meetingMode,
-          meetingDate,
-          meetingTime
+          tType,
+          pType,
+          loc,
+          bud
         ]
       );
 
