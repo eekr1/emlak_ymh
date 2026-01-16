@@ -36,54 +36,29 @@ export function hasMinimumHandoffData(cleanPayload = {}) {
     const hasPhone = phoneDigits.length >= 10; // TR için pratik eşik
     const hasText = (summary.length >= 3) || (details.length >= 3);
 
-    // 🔹 Yeni zorunlu alanlar: Görüşme modu + tarih & saat
-    const modeRaw =
-        String(cleanPayload?.preferred_meeting?.mode || cleanPayload?.meeting_mode || "")
-            .trim()
-            .toLowerCase();
+    // 🔹 Emlak Zorunlu Alanlar:
+    const pd = cleanPayload?.property_details || {};
+    const transType = String(pd.transaction_type || "").trim();
+    const propType = String(pd.property_type || "").trim();
+    const loc = String(pd.location || "").trim();
+    const bud = String(pd.budget || "").trim();
 
-    const dateRaw =
-        String(
-            cleanPayload?.preferred_meeting?.date ||
-            cleanPayload?.meeting_date ||
-            cleanPayload?.preferred_meeting?.datetime ||
-            cleanPayload?.meeting_datetime ||
-            ""
-        ).trim();
+    const hasTrans = transType.length > 2;
+    const hasProp = propType.length > 2;
+    const hasLoc = loc.length > 2;
+    const hasBud = bud.length > 1; // "0" bile olsa kabul, ama boş olmasın
 
-    const timeRaw =
-        String(
-            cleanPayload?.preferred_meeting?.time ||
-            cleanPayload?.meeting_time ||
-            ""
-        ).trim();
-
-    const hasMode = !!modeRaw; // "online", "yüz yüze", "yuz_yuze" vs. metin olarak
-    const hasDateTime =
-        (!!dateRaw && !!timeRaw) || // ayrı alanlar doluysa
-        (!!dateRaw && !timeRaw && dateRaw.includes(" ")); // "2025-01-10 14:30" gibi tek string’se
-
-
-    // Debug log – artık NERESİ eksik görebileceksin
-    if (!hasName || !hasPhone || !hasText || !hasMode || !hasDateTime) {
+    // Debug log
+    if (!hasName || !hasPhone || !hasText || !hasTrans || !hasProp || !hasLoc || !hasBud) {
         console.log("[handoff][gate][debug]", {
-            hasName,
-            hasPhone,
-            hasText,
-            hasMode,
-            hasDateTime,
-            name,
-            phoneDigits,
-            summary,
-            details,
-            modeRaw,
-            dateRaw,
-            timeRaw,
+            hasName, hasPhone, hasText,
+            hasTrans, hasProp, hasLoc, hasBud,
+            name, phoneDigits,
+            transType, propType, loc, bud
         });
     }
 
-    return hasName && hasPhone && hasText && hasMode && hasDateTime;
-
+    return hasName && hasPhone && hasText && hasTrans && hasProp && hasLoc && hasBud;
 }
 
 
@@ -188,13 +163,58 @@ export function inferHandoffFromText(text) {
         summary = firstMeaningful ? firstMeaningful.slice(0, 160) : "";
     }
 
+    // ✅ BUDGET (Bütçe) Yakalama
+    // Örn: "5 milyon", "30 bin", "15.000 tl", "bütçem 10m"
+    let budget = "";
+    // Regex'i tüm metinde arayacak şekilde (multi-line sorun değil ama match ilk bulduğunu alır)
+    // Biraz daha esnek: Sayı + (boşluk?) + (bin/milyon/m/k/tl/lira)
+    const mBudget = text.match(/(\d+(?:[.,]\d+)?)\s*(?:bin|milyon|m|k|tl|lira)/i);
+    if (mBudget) {
+        budget = mBudget[0].trim();
+    }
+
+    // ✅ LOCATION (Konum) Yakalama (Gelişmiş)
+    // Örn: "Kadıköy'de", "Beşiktaş bölgesi", "İstanbul içi"
+    let location = "";
+
+    // 1. Strateji: Cümle içi yakalama "X'de", "X bölgesi"
+    const mLoc = text.match(/([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)(?:'da|'de|'ta|'te|da|de|ta|te| bölgesi| civarı| mahallesi)/i);
+
+    if (mLoc?.[1]) {
+        // "Kadıköy" kısmını al
+        location = mLoc[1].trim();
+    }
+
+    // 2. Strateji: Eğer regex bulamazsa bilinen şehir/ilçe listesinden tara
+    if (!location) {
+        const cities = ["istanbul", "ankara", "izmir", "bursa", "antalya", "kadıköy", "beşiktaş", "üsküdar", "ataşehir", "ümraniye", "maltepe", "kartal", "sarıyer", "şişli", "beyoğlu", "bakırköy", "beylikdüzü"];
+        const found = cities.find(c => text.toLowerCase().includes(c));
+        if (found) location = found.charAt(0).toUpperCase() + found.slice(1);
+    }
+
+    // İşlem Tipi Yakalama
+    let transaction_type = "";
+    if (/kiralık|kira/.test(lower)) transaction_type = "Kiralık";
+    else if (/satılık|satın/.test(lower)) transaction_type = "Satılık";
+
+    // Mülk Tipi Yakalama
+    let property_type = "";
+    if (/arsa|tarla|parsel/.test(lower)) property_type = "Arsa";
+    else if (/dükkan|ofis|ticari|plaza/.test(lower)) property_type = "Ticari";
+    else if (/daire|ev|konut|villa|rezidans/.test(lower)) property_type = "Konut";
+
     if (!summary) summary = "Emlak Talebi";
 
     return {
         kind: "customer_request",
         payload: {
             contact: { name, phone, email },
-            matter: { category, urgency },
+            property_details: {
+                transaction_type,
+                property_type,
+                location,
+                budget
+            },
             request: {
                 summary,
                 details: text.length > 4000 ? text.slice(-4000) : text
@@ -403,62 +423,22 @@ export function normalizeHandoffPayload(payload = {}) {
     if (out.request.summary) out.request.summary = stripFences(out.request.summary);
     if (out.request.details) out.request.details = stripFences(out.request.details);
 
-    // 🔹 Görüşme bilgilerini normalize et (mode + date + time)
-    // Model veya frontend farklı alan isimleri kullanırsa hepsini toparlayalım.
-    const pm = out.preferred_meeting || out.meeting || {};
+    // 🔹 Emlak Alanlarını Normalize Et (property_details)
+    const pd = out.property_details || {};
 
-    let mode = clean(pm.mode || out.meeting_mode || "");
-    // Sık kullanılan varyasyonları sadeleştirelim (opsiyonel ama okunaklı olur)
-    const modeLower = mode.toLowerCase();
-    if (/online|çevrim içi|cevrim ici/.test(modeLower)) {
-        mode = "Online Görüşme";
-    } else if (/yüz yüze|yuz yuze|ofis/.test(modeLower)) {
-        mode = "Yüz Yüze Görüşme";
-    }
+    // Basit trim temizlikleri
+    if (pd.transaction_type) pd.transaction_type = clean(pd.transaction_type);
+    if (pd.property_type) pd.property_type = clean(pd.property_type);
+    if (pd.location) pd.location = clean(pd.location);
+    if (pd.budget) pd.budget = clean(pd.budget);
 
-    const rawDate =
-        clean(
-            pm.date ||
-            out.meeting_date ||
-            pm.datetime ||
-            out.meeting_datetime ||
-            ""
-        );
+    // Büyük harf baş harf düzeni (Opsiyonel estetik)
+    const capitalize = (s) => s && s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
-    const rawTime =
-        clean(
-            pm.time ||
-            out.meeting_time ||
-            ""
-        );
+    if (pd.transaction_type) pd.transaction_type = capitalize(pd.transaction_type);
+    if (pd.property_type) pd.property_type = capitalize(pd.property_type);
 
-    // Varsa normalize etmeye çalış (TR tarih/saat helper’larını kullanıyoruz)
-    const normalizedDate = normalizeDateTR(rawDate) || rawDate || "";
-    const normalizedTime = normalizeTimeTR(rawTime) || rawTime || "";
-
-    out.preferred_meeting = out.preferred_meeting || {};
-    if (mode) out.preferred_meeting.mode = mode;
-    if (normalizedDate) out.preferred_meeting.date = normalizedDate;
-    if (normalizedTime) out.preferred_meeting.time = normalizedTime;
-
-    // --- Fallback: Date/Time/Mode from Keywords ---
-    // Eğer tarih/saat boşsa ama metinde aciliyet belirten kelimeler varsa doldur.
-    const combinedText = ((summary || "") + " " + (details || "")).toLowerCase();
-
-    if (!out.preferred_meeting.date) {
-        const urgencyKeywords = ["hemen", "acil", "kısa", "en kısa zamanda", "en kısa sürede", "müsaitlikte", "uygun zamanda", "dönüş yaparsanız", "haber bekliyorum"];
-        if (urgencyKeywords.some(kw => combinedText.includes(kw))) {
-            out.preferred_meeting.date = "En kısa sürede (Tespit edilen)";
-            if (!out.preferred_meeting.time) {
-                out.preferred_meeting.time = "Müsaitlik durumuna göre";
-            }
-        }
-    }
-
-    // Mod boşsa varsayılan ata (Bloklamaması için)
-    if (!out.preferred_meeting.mode) {
-        out.preferred_meeting.mode = "İletişimde belirlenecek";
-    }
+    out.property_details = pd;
 
 
 
