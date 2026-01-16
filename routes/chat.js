@@ -268,8 +268,9 @@ router.post("/stream", chatLimiter, async (req, res) => {
 
         // Fallback: explicit block yoksa metinden çıkar
         if (!handoff) {
-            // fallback SADECE kullanıcı mesajından yapılmalı (asistan metninden değil)
-            const inferred = inferHandoffFromText(message);
+            // fallback: Kullanıcı mesajı + Asistanın ürettiği cevap (bağlam için)
+            const combinedContext = message + "\n" + accTextOriginal;
+            const inferred = inferHandoffFromText(combinedContext);
             if (inferred) {
                 handoff = inferred;
             }
@@ -512,10 +513,12 @@ router.post("/message", chatLimiter, async (req, res) => {
 
         // explicit yoksa metinden üret
         if (!handoff) {
-            const inferred = inferHandoffFromText(message);
+            // fallback: User msg + Assistant msg
+            const combinedContext = message + "\n" + rawAssistantText;
+            const inferred = inferHandoffFromText(combinedContext);
             if (inferred) {
                 handoff = inferred;
-                console.log("[handoff][fallback][poll] inferred from text");
+                console.log("[handoff][fallback][poll] inferred from text (with context)");
             }
         }
 
