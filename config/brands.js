@@ -102,7 +102,8 @@ export function buildRunInstructions(brandKey, brandCfg = {}) {
         ``,
         `Tüm bilgiler tamamlandığında (ve sadece o zaman):`,
         `1. Arka planda handoff JSON'u üret.`,
-        `2. Kullanıcıya: "Tamamdır [İsim] Bey/Hanım, özellikleri not aldım. Danışman arkadaşlarım uygun portföyleri hazırlayıp sizi [Telefon] numarasından arayacaklar." de.`,
+        `2. Handoff tetiklendiğinde kullanıcıya hiçbir ek mesaj yazma.`,
+        `3.Sadece handoff JSON üret ve yanıtı JSON ile bitir.`,
         ``,
 
         `HANDOFF FORMAT (JSON)`,
