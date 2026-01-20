@@ -50,38 +50,29 @@ export async function sendHandoffEmail({ brandKey, brandCfg, kind, payload }) {
         // ===========
         // SUBJECT
         // ===========
+        // ===========
+        // SUBJECT
+        // ===========
         const summary =
             normalize(payload?.request?.summary) ||
             normalize(payload?.summary) ||
             "";
 
-        const categoryRaw =
-            normalize(payload?.matter?.category) ||
-            normalize(payload?.category) ||
-            "";
+        // Emlak Detayları
+        const pd = payload?.property_details || {};
+        const transType = normalize(pd.transaction_type); // Satılık/Kiralık
+        const propType = normalize(pd.property_type);     // Konut/Arsa
+        const loc = normalize(pd.location);               // Kadıköy
+        const bud = normalize(pd.budget);                 // 10M
 
-        const categoryMap = {
-            aile: "Aile Hukuku",
-            is: "İş Hukuku",
-            ceza: "Ceza Hukuku",
-            icra: "İcra / Alacak",
-            kira: "Kira / Tahliye",
-            tazminat: "Tazminat",
-            diger: "Diğer"
-        };
+        const intentLabel = summary ? `Emlak Talebi — ${summary}` : "Emlak Talebi";
 
-        const category = categoryMap[categoryRaw] || categoryRaw;
-
-
-        const urgency =
-            normalize(payload?.matter?.urgency) ||
-            normalize(payload?.urgency) ||
-            "";
-
-        const intentLabel = summary ? `Hukuk Talebi — ${summary}` : "Hukuk Talebi";
-        const tailBits = [category && `Alan: ${category}`, urgency && `Aciliyet: ${urgency}`]
-            .filter(Boolean)
-            .join(" | ");
+        // Konu başlığına sığacak kısa etiketler
+        const tailBits = [
+            transType && propType ? `${transType} ${propType}` : (transType || propType),
+            loc && `${loc}`,
+            bud && `Bütçe: ${bud}`
+        ].filter(Boolean).join(" | ");
 
         const subject = tailBits
             ? `${subjectPrefix} ${intentLabel} (${tailBits})`
@@ -101,52 +92,11 @@ export async function sendHandoffEmail({ brandKey, brandCfg, kind, payload }) {
         if (phone) kv.push(["Telefon", phone]);
         if (email) kv.push(["E-posta", email]);
 
-        if (category) kv.push(["Hukuk Alanı", category]);
-        if (urgency) kv.push(["Aciliyet", urgency]);
-
-        const eventDate =
-            normalize(payload?.dates?.event) ||
-            normalize(payload?.event_date) ||
-            "";
-
-        const deadline =
-            normalize(payload?.dates?.deadline) ||
-            normalize(payload?.deadline) ||
-            "";
-
-        if (eventDate) kv.push(["Olay Tarihi / Aralık", eventDate]);
-        if (deadline) kv.push(["Kritik Tarih / Son Gün", deadline]);
-
-        const meetingMode =
-            normalize(payload?.preferred_meeting?.mode) ||
-            normalize(payload?.meeting_mode) ||
-            "";
-
-        const meetingDate =
-            normalize(payload?.preferred_meeting?.date) ||
-            normalize(payload?.meeting_date) ||
-            "";
-
-        const meetingTime =
-            normalize(payload?.preferred_meeting?.time) ||
-            normalize(payload?.meeting_time) ||
-            "";
-
-        const meetingDateTime =
-            normalize(payload?.preferred_meeting?.datetime) ||
-            normalize(payload?.meeting_datetime) ||
-            "";
-
-
-        if (meetingMode) kv.push(["Görüşme Tercihi", meetingMode]);
-
-        if (meetingDate || meetingTime || meetingDateTime) {
-            if (meetingDate) kv.push(["Görüşme Tarihi", meetingDate]);
-            if (meetingTime) kv.push(["Görüşme Saati", meetingTime]);
-            if (!meetingDate && !meetingTime && meetingDateTime) {
-                kv.push(["Görüşme Tarih/Saat", meetingDateTime]);
-            }
-        }
+        // Emlak Özel Alanları
+        if (transType) kv.push(["İşlem Tipi", transType]);
+        if (propType) kv.push(["Mülk Tipi", propType]);
+        if (loc) kv.push(["Konum / İlçe", loc]);
+        if (bud) kv.push(["Bütçe", bud]);
 
         if (summary) kv.push(["Konu (Özet)", summary]);
 
@@ -156,12 +106,6 @@ export async function sendHandoffEmail({ brandKey, brandCfg, kind, payload }) {
             "";
 
         if (details) kv.push(["Açıklama (Detay)", details]);
-
-        const docs = Array.isArray(payload?.documents)
-            ? payload.documents.map(x => normalize(x)).filter(Boolean)
-            : [];
-
-        if (docs.length) kv.push(["Belgeler", docs.join(", ")]);
 
         kv.push(["Handoff Türü", normalize(kind) || "customer_request"]);
         kv.push(["Kaynak Marka", brandLabel]);
