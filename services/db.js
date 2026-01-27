@@ -244,154 +244,162 @@ export async function searchVectors(brandKey, queryEmbedding, limit = 5) {
     candidates.sort((a, b) => b.score - a.score);
     return candidates.slice(0, limit);
 
-    /* ================== SOURCES (Admin) ================== */
+  } catch (e) {
+    console.error("[db] searchVectors error:", e);
+    return [];
+  } finally {
+    client.release();
+  }
+}
 
-    // ensureTables içinde şema update için "ALTER TABLE..." ekledik;
-    // aşağıda da fonksiyonları implemente ediyoruz.
+/* ================== SOURCES (Admin) ================== */
 
-    export async function getSources(brandKey) {
-      const client = await pool.connect();
-      try {
-        const res = await client.query(`
+// ensureTables içinde şema update için "ALTER TABLE..." ekledik;
+// aşağıda da fonksiyonları implemente ediyoruz.
+
+export async function getSources(brandKey) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(`
       SELECT * FROM sources
       WHERE brand_key = $1
       ORDER BY created_at DESC
     `, [brandKey]);
-        return res.rows;
-      } finally {
-        client.release();
-      }
-    }
+    return res.rows;
+  } finally {
+    client.release();
+  }
+}
 
-    export async function getSourceById(id) {
-      const client = await pool.connect();
-      try {
-        const res = await client.query(`SELECT * FROM sources WHERE id = $1`, [id]);
-        return res.rows[0] || null;
-      } finally {
-        client.release();
-      }
-    }
+export async function getSourceById(id) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(`SELECT * FROM sources WHERE id = $1`, [id]);
+    return res.rows[0] || null;
+  } finally {
+    client.release();
+  }
+}
 
-    export async function addSource({ brandKey, url }) {
-      const client = await pool.connect();
-      try {
-        const res = await client.query(`
+export async function addSource({ brandKey, url }) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(`
       INSERT INTO sources (brand_key, url, status)
       VALUES ($1, $2, 'idle')
       RETURNING *
     `, [brandKey, url]);
-        return res.rows[0];
-      } finally {
-        client.release();
-      }
-    }
+    return res.rows[0];
+  } finally {
+    client.release();
+  }
+}
 
-    export async function toggleSource(id, enabled) {
-      const client = await pool.connect();
-      try {
-        const res = await client.query(`
+export async function toggleSource(id, enabled) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(`
       UPDATE sources
       SET is_enabled = $2
       WHERE id = $1
       RETURNING *
     `, [id, enabled]);
-        return res.rows[0];
-      } finally {
-        client.release();
-      }
+    return res.rows[0];
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateSourceStatus(id, { status, last_error }) {
+  const client = await pool.connect();
+  try {
+    // Dinamik set oluşturma (basit versiyon)
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(status);
     }
+    if (last_error !== undefined) {
+      fields.push(`last_error = $${idx++}`);
+      values.push(last_error);
+    }
+    // Her güncellemede timestamp yenilemek istersen:
+    // fields.push(`last_indexed_at = now()`); 
+    // Ama belki status 'idle' olunca değil, 'indexed' olunca? Senaryoya göre değişir.
 
-    export async function updateSourceStatus(id, { status, last_error }) {
-      const client = await pool.connect();
-      try {
-        // Dinamik set oluşturma (basit versiyon)
-        const fields = [];
-        const values = [];
-        let idx = 1;
+    if (fields.length === 0) return null;
 
-        if (status !== undefined) {
-          fields.push(`status = $${idx++}`);
-          values.push(status);
-        }
-        if (last_error !== undefined) {
-          fields.push(`last_error = $${idx++}`);
-          values.push(last_error);
-        }
-        // Her güncellemede timestamp yenilemek istersen:
-        // fields.push(`last_indexed_at = now()`); 
-        // Ama belki status 'idle' olunca değil, 'indexed' olunca? Senaryoya göre değişir.
-
-        if (fields.length === 0) return null;
-
-        values.push(id);
-        const sql = `
+    values.push(id);
+    const sql = `
       UPDATE sources
       SET ${fields.join(", ")}
       WHERE id = $${idx}
       RETURNING *
     `;
-        const res = await client.query(sql, values);
-        return res.rows[0];
-      } finally {
-        client.release();
-      }
-    }
+    const res = await client.query(sql, values);
+    return res.rows[0];
+  } finally {
+    client.release();
+  }
+}
 
-    export async function deleteSource(id) {
-      const client = await pool.connect();
-      try {
-        // source_chunks ve embeddings CASCADE ile silinir (tablo tanımında ON DELETE CASCADE varsa).
-        // Emin olmak için ensureTables'a bak: "REFERENCES sources(id) ON DELETE CASCADE" var.
-        await client.query(`DELETE FROM sources WHERE id = $1`, [id]);
-        return true;
-      } finally {
-        client.release();
-      }
-    }
+export async function deleteSource(id) {
+  const client = await pool.connect();
+  try {
+    // source_chunks ve embeddings CASCADE ile silinir (tablo tanımında ON DELETE CASCADE varsa).
+    // Emin olmak için ensureTables'a bak: "REFERENCES sources(id) ON DELETE CASCADE" var.
+    await client.query(`DELETE FROM sources WHERE id = $1`, [id]);
+    return true;
+  } finally {
+    client.release();
+  }
+}
 
-    export async function clearSourceChunks(sourceId) {
-      const client = await pool.connect();
-      try {
-        await client.query(`DELETE FROM source_chunks WHERE source_id = $1`, [sourceId]);
-        return true;
-      } finally {
-        client.release();
-      }
-    }
+export async function clearSourceChunks(sourceId) {
+  const client = await pool.connect();
+  try {
+    await client.query(`DELETE FROM source_chunks WHERE source_id = $1`, [sourceId]);
+    return true;
+  } finally {
+    client.release();
+  }
+}
 
-    export async function saveSourceChunks(sourceId, chunks) {
-      // chunks: [{ content, embedding: [...] }, ...]
-      const client = await pool.connect();
-      try {
-        await client.query("BEGIN");
+export async function saveSourceChunks(sourceId, chunks) {
+  // chunks: [{ content, embedding: [...] }, ...]
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-        // 1. Chunk'ları ve embeddingleri ekle
-        // Performans için loop ile yapıyoruz, çok büyükse bulk insert gerekir.
-        for (const chunk of chunks) {
-          const cRes = await client.query(`
+    // 1. Chunk'ları ve embeddingleri ekle
+    // Performans için loop ile yapıyoruz, çok büyükse bulk insert gerekir.
+    for (const chunk of chunks) {
+      const cRes = await client.query(`
         INSERT INTO source_chunks (source_id, brand_key, content)
         VALUES ($1, $2, $3)
         RETURNING id, brand_key
       `, [sourceId, chunk.brand_key || 'unknown', chunk.content]); // brand_key chunk içinde gelmeli veya parametre olmalı
 
-          const chunkId = cRes.rows[0].id;
-          const bKey = cRes.rows[0].brand_key;
+      const chunkId = cRes.rows[0].id;
+      const bKey = cRes.rows[0].brand_key;
 
-          if (chunk.embedding) {
-            await client.query(`
+      if (chunk.embedding) {
+        await client.query(`
             INSERT INTO source_embeddings (chunk_id, brand_key, embedding)
             VALUES ($1, $2, $3)
           `, [chunkId, bKey, JSON.stringify(chunk.embedding)]);
-          }
-        }
-
-        await client.query("COMMIT");
-      } catch (e) {
-        await client.query("ROLLBACK");
-        throw e;
-      } finally {
-        client.release();
       }
     }
+
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
 
