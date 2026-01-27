@@ -12,6 +12,7 @@ dotenv.config();
 
 const app = express();
 console.log("[boot] node version:", process.version);
+console.log("[boot] Build Date: 2026-01-27T23:42:00.000Z");
 
 /* ==================== App Middleware ==================== */
 app.set("trust proxy", 1);
