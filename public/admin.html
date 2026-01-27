@@ -25,6 +25,8 @@
 
     <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -121,7 +123,25 @@
                     <span class="font-bold text-lg tracking-wide">YMH Hukuk <span
                             class="text-gray-500 text-sm font-normal ml-1">CRM v4.0</span></span>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-6">
+                    <nav class="flex gap-4">
+                        <button @click="currentTab = 'dashboard'"
+                            class="text-sm font-medium transition-colors hover:text-white"
+                            :class="currentTab === 'dashboard' ? 'text-white border-b-2 border-brand-500' : 'text-gray-400'">
+                            Özet (Dashboard)
+                        </button>
+                        <button @click="currentTab = 'handoffs'"
+                            class="text-sm font-medium transition-colors hover:text-white"
+                            :class="currentTab === 'handoffs' ? 'text-white border-b-2 border-brand-500' : 'text-gray-400'">
+                            Talepler
+                        </button>
+                        <button @click="currentTab = 'sources'"
+                            class="text-sm font-medium transition-colors hover:text-white"
+                            :class="currentTab === 'sources' ? 'text-white border-b-2 border-brand-500' : 'text-gray-400'">
+                            Kaynaklar (Eğitim)
+                        </button>
+                    </nav>
+                    <div class="h-6 w-px bg-gray-700"></div>
                     <span class="text-sm text-gray-400 hidden sm:inline">Admin</span>
                     <button @click="logout"
                         class="bg-gray-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2">
@@ -134,694 +154,1097 @@
             <main class="flex-1 overflow-auto bg-gray-900 p-6 scroll-smooth">
                 <div class="max-w-7xl mx-auto space-y-6">
 
-                    <!-- 1. Stats -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <!-- Today -->
-                        <div
-                            class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-400 text-xs font-semibold uppercase">Bugün Gelen</p>
-                                <p class="text-2xl font-bold text-white mt-1">{{ stats.today || 0 }}</p>
-                            </div>
+                    <!-- DASHBOARD TAB -->
+                    <div v-show="currentTab === 'dashboard'" class="space-y-6">
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Total Chats -->
                             <div
-                                class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                <i class="ri-calendar-check-line text-xl"></i>
+                                class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl relative overflow-hidden group">
+                                <div class="relative z-10">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Toplam Sohbet
+                                    </p>
+                                    <h3 class="text-3xl font-extrabold text-white mt-1">{{ dashboardStats.totalConvs ||
+                                        0 }}</h3>
+                                    <p class="text-green-400 text-xs mt-2 font-medium flex items-center gap-1">
+                                        <i class="ri-arrow-up-line"></i> Son 7 günde {{ dashboardStats.newConvs || 0 }}
+                                        yeni
+                                    </p>
+                                </div>
+                                <i
+                                    class="ri-message-3-line absolute right-4 bottom-4 text-6xl text-gray-700/20 group-hover:scale-110 transition-transform"></i>
+                            </div>
+
+                            <!-- Total Leads -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl relative overflow-hidden group">
+                                <div class="relative z-10">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Toplam Lead</p>
+                                    <h3 class="text-3xl font-extrabold text-brand-500 mt-1">{{
+                                        dashboardStats.totalHandoffs || 0 }}</h3>
+                                    <p class="text-gray-500 text-xs mt-2">Müşteri Adayı</p>
+                                </div>
+                                <i
+                                    class="ri-user-star-line absolute right-4 bottom-4 text-6xl text-brand-500/10 group-hover:scale-110 transition-transform"></i>
+                            </div>
+
+                            <!-- Conversion Rate -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl relative overflow-hidden group">
+                                <div class="relative z-10">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Dönüşüm Oranı
+                                    </p>
+                                    <h3 class="text-3xl font-extrabold text-blue-400 mt-1">% {{
+                                        dashboardStats.conversionRate || 0 }}</h3>
+                                    <p class="text-gray-500 text-xs mt-2">Sohbet / Lead</p>
+                                </div>
+                                <i
+                                    class="ri-pie-chart-2-line absolute right-4 bottom-4 text-6xl text-blue-500/10 group-hover:scale-110 transition-transform"></i>
+                            </div>
+
+                            <!-- Avg Response (Placeholder) -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl relative overflow-hidden group">
+                                <div class="relative z-10">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Bot Hızı</p>
+                                    <h3 class="text-3xl font-extrabold text-purple-400 mt-1">~1.2s</h3>
+                                    <p class="text-gray-500 text-xs mt-2">Ort. Cevap Süresi</p>
+                                </div>
+                                <i
+                                    class="ri-speed-line absolute right-4 bottom-4 text-6xl text-purple-500/10 group-hover:scale-110 transition-transform"></i>
                             </div>
                         </div>
-                        <!-- Pending -->
-                        <div
-                            class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-400 text-xs font-semibold uppercase">Bekleyen (NEW)</p>
-                                <p class="text-2xl font-bold text-brand-500 mt-1">{{ stats.pending || 0 }}</p>
+
+                        <!-- Chart Section -->
+                        <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-xl p-6">
+                            <h3 class="text-white font-bold mb-6 flex items-center gap-2">
+                                <i class="ri-bar-chart-box-line text-brand-500"></i> Günlük Sohbet Trafiği (Son 7 Gün)
+                            </h3>
+                            <div class="w-full h-80">
+                                <canvas id="chartCanvas"></canvas>
                             </div>
-                            <div
-                                class="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-500">
-                                <i class="ri-time-line text-xl"></i>
-                            </div>
-                        </div>
-                        <!-- Weekly -->
-                        <div
-                            class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-400 text-xs font-semibold uppercase">Son 7 Gün</p>
-                                <p class="text-2xl font-bold text-white mt-1">{{ stats.weekly || 0 }}</p>
-                            </div>
-                            <div
-                                class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
-                                <i class="ri-bar-chart-groupped-line text-xl"></i>
-                            </div>
-                        </div>
-                        <!-- Trend -->
-                        <div
-                            class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex flex-col justify-center">
-                            <p class="text-gray-400 text-xs font-semibold uppercase mb-1">Popüler Kategori (7 gün)</p>
-                            <div v-if="stats.categories && stats.categories.length > 0">
-                                <span class="text-white font-bold">{{ stats.categories[0].category.toUpperCase()
-                                    }}</span>
-                                <span class="text-gray-500 text-sm ml-1">({{ stats.categories[0].count }})</span>
-                            </div>
-                            <div v-else class="text-gray-500 text-sm italic">Veri yok</div>
                         </div>
                     </div>
 
-                    <!-- 2. Filters & Toolbar -->
-                    <div
-                        class="flex flex-col xl:flex-row items-center justify-between gap-4 bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 backdrop-blur-sm sticky top-0 z-10 shadow-lg">
-
-                        <!-- Search Bar -->
-                        <div class="relative w-full xl:w-96 group">
-                            <i
-                                class="ri-search-line absolute left-3 top-2.5 text-gray-500 group-focus-within:text-brand-500 transition-colors"></i>
-                            <input v-model="searchQuery" @input="debounceSearch" type="text"
-                                class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm"
-                                placeholder="İsim, telefon veya notlarda ara...">
+                    <!-- HANDOFFS TAB -->
+                    <div v-show="currentTab === 'handoffs'" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <!-- Today -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-400 text-xs font-semibold uppercase">Bugün Gelen</p>
+                                    <p class="text-2xl font-bold text-white mt-1">{{ stats.today || 0 }}</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                    <i class="ri-calendar-check-line text-xl"></i>
+                                </div>
+                            </div>
+                            <!-- Pending -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-400 text-xs font-semibold uppercase">Bekleyen (NEW)</p>
+                                    <p class="text-2xl font-bold text-brand-500 mt-1">{{ stats.pending || 0 }}</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-500">
+                                    <i class="ri-time-line text-xl"></i>
+                                </div>
+                            </div>
+                            <!-- Weekly -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-400 text-xs font-semibold uppercase">Son 7 Gün</p>
+                                    <p class="text-2xl font-bold text-white mt-1">{{ stats.weekly || 0 }}</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                    <i class="ri-bar-chart-groupped-line text-xl"></i>
+                                </div>
+                            </div>
+                            <!-- Trend -->
+                            <div
+                                class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow flex flex-col justify-center">
+                                <p class="text-gray-400 text-xs font-semibold uppercase mb-1">Popüler Kategori (7 gün)
+                                </p>
+                                <div v-if="stats.categories && stats.categories.length > 0">
+                                    <span class="text-white font-bold">{{ stats.categories[0].category.toUpperCase()
+                                        }}</span>
+                                    <span class="text-gray-500 text-sm ml-1">({{ stats.categories[0].count }})</span>
+                                </div>
+                                <div v-else class="text-gray-500 text-sm italic">Veri yok</div>
+                            </div>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-3 w-full justify-end">
-                            <!-- Quick Filter: Today's NEW -->
-                            <button @click="toggleTodayNew"
-                                class="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all flex items-center gap-2"
-                                :class="filterTodayNew ? 'bg-blue-600/20 text-blue-400 border-blue-500/50 ring-1 ring-blue-500/50' : 'bg-gray-800 text-gray-400 border-gray-600 hover:bg-gray-700'">
-                                <i class="ri-flashlight-fill"></i> Bugün Gelen
-                            </button>
+                        <!-- 2. Filters & Toolbar -->
+                        <div
+                            class="flex flex-col xl:flex-row items-center justify-between gap-4 bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 backdrop-blur-sm sticky top-0 z-10 shadow-lg">
 
-                            <!-- Status Filter -->
-                            <div class="relative">
-                                <select v-model="filterStatus" @change="fetchData"
-                                    class="appearance-none bg-gray-800 border border-gray-600 text-white py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:border-brand-500 text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
-                                    <option value="ALL">Durum: Tümü</option>
-                                    <option value="NEW">Yeni / Bekleyen</option>
-                                    <option value="ARANDI">Arandı</option>
-                                    <option value="RANDEVU">Randevu</option>
-                                    <option value="KAPANDI">Kapandı</option>
-                                    <option value="SPAM">Spam</option>
-                                </select>
+                            <!-- Search Bar -->
+                            <div class="relative w-full xl:w-96 group">
                                 <i
-                                    class="ri-arrow-down-s-fill absolute right-2 top-2.5 text-gray-400 pointer-events-none"></i>
+                                    class="ri-search-line absolute left-3 top-2.5 text-gray-500 group-focus-within:text-brand-500 transition-colors"></i>
+                                <input v-model="searchQuery" @input="debounceSearch" type="text"
+                                    class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm"
+                                    placeholder="İsim, telefon veya notlarda ara...">
                             </div>
 
-                            <!-- Category Filter -->
-                            <div class="relative">
-                                <select v-model="filterCategory" @change="fetchData"
-                                    class="appearance-none bg-gray-800 border border-gray-600 text-white py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:border-brand-500 text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
-                                    <option value="ALL">Kategori: Tümü</option>
-                                    <option value="aile">Aile</option>
-                                    <option value="is">İş</option>
-                                    <option value="ceza">Ceza</option>
-                                    <option value="tazminat">Tazminat</option>
-                                    <option value="kira">Kira</option>
-                                    <option value="icra">İcra</option>
-                                    <option value="diger">Diğer</option>
-                                </select>
-                                <i
-                                    class="ri-filter-3-line absolute right-2 top-2.5 text-gray-400 pointer-events-none"></i>
-                            </div>
+                            <div class="flex flex-wrap items-center gap-3 w-full justify-end">
+                                <!-- Quick Filter: Today's NEW -->
+                                <button @click="toggleTodayNew"
+                                    class="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all flex items-center gap-2"
+                                    :class="filterTodayNew ? 'bg-blue-600/20 text-blue-400 border-blue-500/50 ring-1 ring-blue-500/50' : 'bg-gray-800 text-gray-400 border-gray-600 hover:bg-gray-700'">
+                                    <i class="ri-flashlight-fill"></i> Bugün Gelen
+                                </button>
 
-                            <!-- Date Filter -->
-                            <div class="relative">
-                                <select v-model="filterDays" @change="fetchData"
-                                    class="appearance-none bg-gray-800 border border-gray-600 text-white py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:border-brand-500 text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
-                                    <option value="">Tarih: Tümü</option>
-                                    <option value="1">Son 24 Saat</option>
-                                    <option value="3">Son 3 Gün</option>
-                                    <option value="7">Son 7 Gün</option>
-                                    <option value="30">Son 30 Gün</option>
-                                </select>
-                                <i
-                                    class="ri-calendar-event-line absolute right-2 top-2.5 text-gray-400 pointer-events-none"></i>
-                            </div>
+                                <!-- Status Filter -->
+                                <div class="relative">
+                                    <select v-model="filterStatus" @change="fetchData"
+                                        class="appearance-none bg-gray-800 border border-gray-600 text-white py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:border-brand-500 text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
+                                        <option value="ALL">Durum: Tümü</option>
+                                        <option value="NEW">Yeni / Bekleyen</option>
+                                        <option value="ARANDI">Arandı</option>
+                                        <option value="RANDEVU">Randevu</option>
+                                        <option value="KAPANDI">Kapandı</option>
+                                        <option value="SPAM">Spam</option>
+                                    </select>
+                                    <i
+                                        class="ri-arrow-down-s-fill absolute right-2 top-2.5 text-gray-400 pointer-events-none"></i>
+                                </div>
 
-                            <button @click="fetchData"
-                                class="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors border border-gray-600"
-                                title="Yenile">
-                                <i class="ri-refresh-line" :class="{ 'animate-spin': loadingData }"></i>
-                            </button>
+                                <!-- Category Filter -->
+                                <div class="relative">
+                                    <select v-model="filterCategory" @change="fetchData"
+                                        class="appearance-none bg-gray-800 border border-gray-600 text-white py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:border-brand-500 text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
+                                        <option value="ALL">Kategori: Tümü</option>
+                                        <option value="aile">Aile</option>
+                                        <option value="is">İş</option>
+                                        <option value="ceza">Ceza</option>
+                                        <option value="tazminat">Tazminat</option>
+                                        <option value="kira">Kira</option>
+                                        <option value="icra">İcra</option>
+                                        <option value="diger">Diğer</option>
+                                    </select>
+                                    <i
+                                        class="ri-filter-3-line absolute right-2 top-2.5 text-gray-400 pointer-events-none"></i>
+                                </div>
+
+                                <!-- Date Filter -->
+                                <div class="relative">
+                                    <select v-model="filterDays" @change="fetchData"
+                                        class="appearance-none bg-gray-800 border border-gray-600 text-white py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:border-brand-500 text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
+                                        <option value="">Tarih: Tümü</option>
+                                        <option value="1">Son 24 Saat</option>
+                                        <option value="3">Son 3 Gün</option>
+                                        <option value="7">Son 7 Gün</option>
+                                        <option value="30">Son 30 Gün</option>
+                                    </select>
+                                    <i
+                                        class="ri-calendar-event-line absolute right-2 top-2.5 text-gray-400 pointer-events-none"></i>
+                                </div>
+
+                                <button @click="fetchData"
+                                    class="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors border border-gray-600"
+                                    title="Yenile">
+                                    <i class="ri-refresh-line" :class="{ 'animate-spin': loadingData }"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- 3. Table -->
-                    <div
-                        class="bg-gray-800 rounded-xl border border-gray-700 overflow-visible shadow-xl relative min-h-[400px]">
-                        <div class="overflow-visible">
+                        <!-- 3. Table -->
+                        <div
+                            class="bg-gray-800 rounded-xl border border-gray-700 overflow-visible shadow-xl relative min-h-[400px]">
+                            <div class="overflow-visible">
+                                <table class="w-full text-left text-sm text-gray-300">
+                                    <thead
+                                        class="bg-gray-900/50 text-xs uppercase font-medium text-gray-400 border-b border-gray-700 sticky top-0 z-0">
+                                        <tr>
+                                            <th class="px-6 py-4 w-32">Durum</th>
+                                            <th class="px-6 py-4 w-40">Zaman</th>
+                                            <th class="px-6 py-4 w-56">İletişim</th>
+                                            <th class="px-6 py-4 w-32">Kategori</th>
+                                            <th class="px-6 py-4">Detaylar</th>
+                                            <th class="px-6 py-4 w-20 text-right">Geçmiş</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-700">
+                                        <tr v-if="!handoffs.length && !loadingData" class="hover:bg-gray-800/50">
+                                            <td colspan="6"
+                                                class="px-6 py-12 text-center text-gray-500 italic flex flex-col items-center">
+                                                <i class="ri-inbox-2-line text-4xl mb-2 opacity-30"></i>
+                                                <span>Kriterlere uygun kayıt bulunamadı.</span>
+                                            </td>
+                                        </tr>
+
+                                        <tr v-for="(item, index) in handoffs" :key="item.id"
+                                            class="group hover:bg-gray-700/30 transition-colors relative"
+                                            :class="{ 'bg-yellow-900/10 hover:bg-yellow-900/20': isStaleNew(item) }">
+
+                                            <!-- Stale Indicator -->
+                                            <td class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-600"
+                                                v-if="isStaleNew(item)" title="Eskimiş Yeni Talep (24s+)"></td>
+
+                                            <!-- Status -->
+                                            <td class="px-6 py-4 align-top">
+                                                <div class="relative inline-block text-left">
+                                                    <button @click.stop="openStatusMenu(item)"
+                                                        class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border shadow-sm flex items-center gap-1 w-24 justify-center"
+                                                        :class="getStatusColor(item.status)">
+                                                        {{ item.status }}
+                                                        <i class="ri-arrow-down-s-fill opacity-50"></i>
+                                                    </button>
+
+                                                    <!-- Smart Dropdown -->
+                                                    <div v-if="activeMenuId === item.id"
+                                                        class="absolute z-50 w-32 rounded-md shadow-2xl bg-gray-800 ring-1 ring-black ring-opacity-5 border border-gray-600 overflow-hidden"
+                                                        :class="index > handoffs.length - 4 ? 'bottom-full mb-1' : 'top-full mt-1 left-0'">
+                                                        <div class="py-1">
+                                                            <a v-for="st in statusOptions" :key="st"
+                                                                @click.stop="updateStatus(item, st)"
+                                                                class="block px-4 py-2 text-xs text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer transition-colors flex items-center justify-between"
+                                                                :class="{'bg-gray-700/50 text-brand-500 font-bold': item.status === st}">
+                                                                {{ st }}
+                                                                <i class="ri-check-line" v-if="item.status === st"></i>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                    <div v-if="activeMenuId === item.id"
+                                                        @click.stop="activeMenuId = null"
+                                                        class="fixed inset-0 z-40 cursor-default"></div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Date (TimeAgo) -->
+                                            <td class="px-6 py-4 align-top">
+                                                <div class="text-white font-medium text-sm"
+                                                    :title="formatFullDate(item.date)">
+                                                    {{ timeAgo(item.date) }}
+                                                </div>
+                                                <div class="text-gray-500 text-xs mt-1 font-mono">
+                                                    {{ formatTime(item.date) }}
+                                                </div>
+                                            </td>
+
+                                            <!-- Contact (Shortcuts) -->
+                                            <td class="px-6 py-4 align-top">
+                                                <div class="text-white font-medium mb-1">{{ item.name }}</div>
+                                                <div class="flex items-center gap-2" v-if="item.phone">
+                                                    <!-- Phone Link -->
+                                                    <a :href="'tel:' + cleanPhone(item.phone)"
+                                                        class="text-xs bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 px-2 py-1 rounded flex items-center gap-1 transition-colors group/ph"
+                                                        title="Ara">
+                                                        <i
+                                                            class="ri-phone-fill text-gray-400 group-hover/ph:text-white"></i>
+                                                        {{ item.phone }}
+                                                    </a>
+                                                    <!-- WhatsApp Link -->
+                                                    <a :href="'https://wa.me/' + cleanPhone(item.phone)" target="_blank"
+                                                        class="text-green-500 hover:text-green-400 transition-colors p-1"
+                                                        title="WhatsApp">
+                                                        <i class="ri-whatsapp-fill text-lg"></i>
+                                                    </a>
+                                                </div>
+                                                <div class="text-gray-500 text-xs mt-1" v-if="item.email">{{ item.email
+                                                    }}
+                                                </div>
+                                            </td>
+
+                                            <!-- Category -->
+                                            <td class="px-6 py-4 align-top">
+                                                <span
+                                                    class="inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-700 text-gray-300 border border-gray-600 tracking-wider">
+                                                    {{ item.category }}
+                                                </span>
+                                                <!-- Meeting Info -->
+                                                <div v-if="item.meetingDate || item.meetingMode"
+                                                    class="mt-2 bg-purple-900/30 border border-purple-700/50 rounded p-1.5 inline-block min-w-full">
+                                                    <div
+                                                        class="text-[10px] text-purple-300 font-semibold mb-0.5 uppercase tracking-wide">
+                                                        Randevu</div>
+                                                    <div class="text-xs text-white flex items-center gap-1">
+                                                        <i class="ri-calendar-line text-purple-400"></i>
+                                                        {{ item.meetingDate || 'Tarih Yok' }}
+                                                        <span v-if="item.meetingTime" class="text-purple-200">({{
+                                                            item.meetingTime }})</span>
+                                                    </div>
+                                                    <div class="text-[10px] text-gray-400 mt-0.5 ml-4"
+                                                        v-if="item.meetingMode">{{ item.meetingMode }}</div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Details & Notes -->
+                                            <td class="px-6 py-4 align-top w-1/3">
+                                                <div class="text-white text-sm mb-1 line-clamp-2" :title="item.summary">
+                                                    {{
+                                                    item.summary }}</div>
+                                                <!-- Note Section -->
+                                                <div class="mt-2 pt-2 border-t border-gray-700/50 flex items-start gap-2 cursor-pointer group/note transition-opacity opacity-70 hover:opacity-100"
+                                                    @click="openNoteModal(item)">
+                                                    <i class="ri-edit-2-line text-gray-500 text-xs mt-0.5"></i>
+                                                    <div class="flex-1">
+                                                        <div v-if="item.notes"
+                                                            class="text-xs text-yellow-200 bg-yellow-900/40 px-2 py-1 rounded border border-yellow-800/50">
+                                                            {{ item.notes }}
+                                                        </div>
+                                                        <div v-else
+                                                            class="text-xs text-gray-500 italic decoration-dashed hover:underline">
+                                                            Not ekle...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Chat Button (NEW) -->
+                                            <td class="px-6 py-4 align-top text-right">
+                                                <button @click="openChat(item)"
+                                                    class="bg-gray-800 border border-gray-600 hover:bg-gray-700 text-blue-400 p-2 rounded-full transition-colors relative group/chat"
+                                                    title="Sohbet Geçmişi">
+                                                    <i class="ri-chat-3-line text-lg"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div> <!-- End Dashboard Tab -->
+
+                    <!-- SOURCES TAB -->
+                    <div v-if="currentTab === 'sources'" class="space-y-6">
+                        <!-- Add Source Card -->
+                        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl">
+                            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <i class="ri-book-read-line text-brand-500"></i> Yeni Kaynak Ekle
+                            </h2>
+                            <form @submit.prevent="addSource" class="flex gap-4">
+                                <input v-model="newSourceUrl" type="url"
+                                    placeholder="https://ornek-emlak-sitesi.com/satilik-daireler" required
+                                    class="flex-1 bg-gray-900 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-brand-500 transition-colors">
+                                <button type="submit" :disabled="addingSource"
+                                    class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-6 py-3 rounded-lg transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50 flex items-center gap-2">
+                                    <i class="ri-add-line" v-if="!addingSource"></i>
+                                    <i class="ri-loader-4-line animate-spin" v-else></i>
+                                    Ekle
+                                </button>
+                            </form>
+                            <p class="text-gray-500 text-sm mt-2">
+                                <i class="ri-information-line"></i> Botun emlak portföyünü veya piyasa bilgilerini
+                                öğrenmesi için ilan sayfası veya blog yazısı linki ekleyin.
+                            </p>
+                        </div>
+
+                        <!-- Sources List -->
+                        <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
+                            <div
+                                class="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/30">
+                                <h3 class="text-white font-bold">Ekli Kaynaklar</h3>
+                                <button @click="fetchSources" class="text-gray-400 hover:text-white transition-colors">
+                                    <i class="ri-refresh-line"></i> Yenile
+                                </button>
+                            </div>
+
                             <table class="w-full text-left text-sm text-gray-300">
                                 <thead
-                                    class="bg-gray-900/50 text-xs uppercase font-medium text-gray-400 border-b border-gray-700 sticky top-0 z-0">
+                                    class="bg-gray-900/50 text-xs uppercase font-medium text-gray-400 border-b border-gray-700">
                                     <tr>
+                                        <th class="px-6 py-4">URL</th>
                                         <th class="px-6 py-4 w-32">Durum</th>
-                                        <th class="px-6 py-4 w-40">Zaman</th>
-                                        <th class="px-6 py-4 w-56">İletişim</th>
-                                        <th class="px-6 py-4 w-32">Kategori</th>
-                                        <th class="px-6 py-4">Detaylar</th>
-                                        <th class="px-6 py-4 w-20 text-right">Geçmiş</th>
+                                        <th class="px-6 py-4 w-48">Son İndeks</th>
+                                        <th class="px-6 py-4 w-40 text-right">İşlemler</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-700">
-                                    <tr v-if="!handoffs.length && !loadingData" class="hover:bg-gray-800/50">
-                                        <td colspan="6"
-                                            class="px-6 py-12 text-center text-gray-500 italic flex flex-col items-center">
-                                            <i class="ri-inbox-2-line text-4xl mb-2 opacity-30"></i>
-                                            <span>Kriterlere uygun kayıt bulunamadı.</span>
+                                    <tr v-if="sources.length === 0">
+                                        <td colspan="4" class="px-6 py-8 text-center text-gray-500 italic">
+                                            Henüz kaynak eklenmemiş.
                                         </td>
                                     </tr>
-
-                                    <tr v-for="(item, index) in handoffs" :key="item.id"
-                                        class="group hover:bg-gray-700/30 transition-colors relative"
-                                        :class="{ 'bg-yellow-900/10 hover:bg-yellow-900/20': isStaleNew(item) }">
-
-                                        <!-- Stale Indicator -->
-                                        <td class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-600"
-                                            v-if="isStaleNew(item)" title="Eskimiş Yeni Talep (24s+)"></td>
-
-                                        <!-- Status -->
-                                        <td class="px-6 py-4 align-top">
-                                            <div class="relative inline-block text-left">
-                                                <button @click.stop="openStatusMenu(item)"
-                                                    class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border shadow-sm flex items-center gap-1 w-24 justify-center"
-                                                    :class="getStatusColor(item.status)">
-                                                    {{ item.status }}
-                                                    <i class="ri-arrow-down-s-fill opacity-50"></i>
-                                                </button>
-
-                                                <!-- Smart Dropdown -->
-                                                <div v-if="activeMenuId === item.id"
-                                                    class="absolute z-50 w-32 rounded-md shadow-2xl bg-gray-800 ring-1 ring-black ring-opacity-5 border border-gray-600 overflow-hidden"
-                                                    :class="index > handoffs.length - 4 ? 'bottom-full mb-1' : 'top-full mt-1 left-0'">
-                                                    <div class="py-1">
-                                                        <a v-for="st in statusOptions" :key="st"
-                                                            @click.stop="updateStatus(item, st)"
-                                                            class="block px-4 py-2 text-xs text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer transition-colors flex items-center justify-between"
-                                                            :class="{'bg-gray-700/50 text-brand-500 font-bold': item.status === st}">
-                                                            {{ st }}
-                                                            <i class="ri-check-line" v-if="item.status === st"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                                <div v-if="activeMenuId === item.id" @click.stop="activeMenuId = null"
-                                                    class="fixed inset-0 z-40 cursor-default"></div>
-                                            </div>
+                                    <tr v-for="source in sources" :key="source.id"
+                                        class="hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <a :href="source.url" target="_blank"
+                                                class="text-blue-400 hover:underline truncate block max-w-md">
+                                                {{ source.url }}
+                                            </a>
                                         </td>
-
-                                        <!-- Date (TimeAgo) -->
-                                        <td class="px-6 py-4 align-top">
-                                            <div class="text-white font-medium text-sm"
-                                                :title="formatFullDate(item.date)">
-                                                {{ timeAgo(item.date) }}
-                                            </div>
-                                            <div class="text-gray-500 text-xs mt-1 font-mono">
-                                                {{ formatTime(item.date) }}
-                                            </div>
-                                        </td>
-
-                                        <!-- Contact (Shortcuts) -->
-                                        <td class="px-6 py-4 align-top">
-                                            <div class="text-white font-medium mb-1">{{ item.name }}</div>
-                                            <div class="flex items-center gap-2" v-if="item.phone">
-                                                <!-- Phone Link -->
-                                                <a :href="'tel:' + cleanPhone(item.phone)"
-                                                    class="text-xs bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 px-2 py-1 rounded flex items-center gap-1 transition-colors group/ph"
-                                                    title="Ara">
-                                                    <i
-                                                        class="ri-phone-fill text-gray-400 group-hover/ph:text-white"></i>
-                                                    {{ item.phone }}
-                                                </a>
-                                                <!-- WhatsApp Link -->
-                                                <a :href="'https://wa.me/' + cleanPhone(item.phone)" target="_blank"
-                                                    class="text-green-500 hover:text-green-400 transition-colors p-1"
-                                                    title="WhatsApp">
-                                                    <i class="ri-whatsapp-fill text-lg"></i>
-                                                </a>
-                                            </div>
-                                            <div class="text-gray-500 text-xs mt-1" v-if="item.email">{{ item.email }}
-                                            </div>
-                                        </td>
-
-                                        <!-- Category -->
-                                        <td class="px-6 py-4 align-top">
+                                        <td class="px-6 py-4">
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-700 text-gray-300 border border-gray-600 tracking-wider">
-                                                {{ item.category }}
+                                                class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border"
+                                                :class="{
+                                                    'bg-green-900/30 text-green-400 border-green-800': source.status === 'idle' && source.last_indexed_at,
+                                                    'bg-yellow-900/30 text-yellow-400 border-yellow-800': source.status === 'indexing',
+                                                    'bg-red-900/30 text-red-400 border-red-800': source.status === 'error',
+                                                    'bg-gray-700 text-gray-400 border-gray-600': source.status === 'idle' && !source.last_indexed_at
+                                                }">
+                                                {{ source.status === 'idle' ? (source.last_indexed_at ? 'Hazır' :
+                                                'Bekliyor') : source.status }}
                                             </span>
-                                            <!-- Meeting Info -->
-                                            <div v-if="item.meetingDate || item.meetingMode"
-                                                class="mt-2 bg-purple-900/30 border border-purple-700/50 rounded p-1.5 inline-block min-w-full">
-                                                <div
-                                                    class="text-[10px] text-purple-300 font-semibold mb-0.5 uppercase tracking-wide">
-                                                    Randevu</div>
-                                                <div class="text-xs text-white flex items-center gap-1">
-                                                    <i class="ri-calendar-line text-purple-400"></i>
-                                                    {{ item.meetingDate || 'Tarih Yok' }}
-                                                    <span v-if="item.meetingTime" class="text-purple-200">({{
-                                                        item.meetingTime }})</span>
-                                                </div>
-                                                <div class="text-[10px] text-gray-400 mt-0.5 ml-4"
-                                                    v-if="item.meetingMode">{{ item.meetingMode }}</div>
-                                            </div>
                                         </td>
-
-                                        <!-- Details & Notes -->
-                                        <td class="px-6 py-4 align-top w-1/3">
-                                            <div class="text-white text-sm mb-1 line-clamp-2" :title="item.summary">{{
-                                                item.summary }}</div>
-                                            <!-- Note Section -->
-                                            <div class="mt-2 pt-2 border-t border-gray-700/50 flex items-start gap-2 cursor-pointer group/note transition-opacity opacity-70 hover:opacity-100"
-                                                @click="openNoteModal(item)">
-                                                <i class="ri-edit-2-line text-gray-500 text-xs mt-0.5"></i>
-                                                <div class="flex-1">
-                                                    <div v-if="item.notes"
-                                                        class="text-xs text-yellow-200 bg-yellow-900/40 px-2 py-1 rounded border border-yellow-800/50">
-                                                        {{ item.notes }}
-                                                    </div>
-                                                    <div v-else
-                                                        class="text-xs text-gray-500 italic decoration-dashed hover:underline">
-                                                        Not ekle...
-                                                    </div>
+                                        <td class="px-6 py-4 text-xs text-gray-400">
+                                            <div v-if="source.last_indexed_at">
+                                                {{ new Date(source.last_indexed_at).toLocaleString('tr-TR') }}
+                                                <div v-if="source.chunk_count" class="mt-1 text-brand-500 font-mono">
+                                                    <i class="ri-file-text-line"></i> {{ source.chunk_count }} Parça
                                                 </div>
                                             </div>
+                                            <span v-else>-</span>
+                                            <div v-if="source.last_error" class="text-red-400 mt-1"
+                                                :title="source.last_error">
+                                                Hata: {{ source.last_error.substring(0, 20) }}...
+                                            </div>
                                         </td>
+                                        <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                            <!-- Toggle (Aktif/Pasif) -->
+                                            <button @click="toggleSource(source)"
+                                                class="p-2 rounded-lg transition-colors border"
+                                                :class="source.enabled !== false ? 'bg-green-900/20 text-green-400 border-green-800 hover:bg-green-900/40' : 'bg-gray-700 text-gray-500 border-gray-600'"
+                                                :title="source.enabled !== false ? 'Devre Dışı Bırak' : 'Aktifleştir'">
+                                                <i :class="source.enabled !== false ? 'ri-toggle-fill' : 'ri-toggle-line'"
+                                                    class="text-lg"></i>
+                                            </button>
 
-                                        <!-- Chat Button (NEW) -->
-                                        <td class="px-6 py-4 align-top text-right">
-                                            <button @click="openChat(item)"
-                                                class="bg-gray-800 border border-gray-600 hover:bg-gray-700 text-blue-400 p-2 rounded-full transition-colors relative group/chat"
-                                                title="Sohbet Geçmişi">
-                                                <i class="ri-chat-3-line text-lg"></i>
+                                            <!-- Index Button -->
+                                            <button @click="indexSource(source)"
+                                                class="bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 border border-blue-800 p-2 rounded-lg transition-colors"
+                                                :disabled="source.status === 'indexing'" title="Şimdi İndeksle">
+                                                <i class="ri-flashlight-fill"
+                                                    :class="{'animate-pulse': source.status === 'indexing'}"></i>
+                                            </button>
+
+                                            <!-- Delete Button -->
+                                            <button @click="deleteSource(source)"
+                                                class="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-800 p-2 rounded-lg transition-colors"
+                                                title="Sil">
+                                                <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
 
-                </div>
-            </main>
-        </div>
-
-        <!-- NOTE MODAL (Fixed Overlay) -->
-        <div v-if="showNoteModal"
-            class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div
-                class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg border border-gray-600 transform transition-all scale-100 ring-1 ring-white/10">
-                <div
-                    class="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-xl">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <i class="ri-sticky-note-2-fill text-brand-500"></i> Not Düzenle
-                    </h3>
-                    <button @click="closeNoteModal" class="text-gray-400 hover:text-white transition-colors"><i
-                            class="ri-close-circle-fill text-2xl"></i></button>
-                </div>
-                <div class="p-6">
-                    <p class="text-sm text-gray-400 mb-3 flex items-center gap-2">
-                        <i class="ri-user-line"></i> Müşteri: <span class="text-white font-semibold">{{
-                            currentItem?.name }}</span>
-                    </p>
-                    <textarea v-model="tempNote" rows="5"
-                        class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none text-sm leading-relaxed"
-                        placeholder="Ofis içi notlarınızı buraya girebilirsiniz..."></textarea>
-                    <p class="text-xs text-gray-500 mt-2 text-right">Bu not sadece admin panelinde görünür.</p>
-                </div>
-                <div class="px-6 py-4 bg-gray-900/50 rounded-b-xl flex justify-end gap-3 border-t border-gray-700">
-                    <button @click="closeNoteModal"
-                        class="px-4 py-2 text-gray-300 hover:text-white text-sm font-medium transition-colors hover:bg-gray-800 rounded-lg">İptal</button>
-                    <button @click="saveNote"
-                        class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-brand-500/20 transition-all transform active:scale-95">Kaydet</button>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- CHAT MODAL (NEW) -->
-        <div v-if="showChatModal"
-            class="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4">
-            <div
-                class="bg-chat-bg w-full max-w-2xl h-[80vh] flex flex-col rounded-xl overflow-hidden shadow-2xl relative border border-gray-700 transform transition-all">
-
-                <!-- Header -->
-                <div class="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700 z-10">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
-                            <i class="ri-user-3-fill text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-white font-bold text-sm">{{ currentItem?.name || 'Ziyaretçi' }}</h3>
-                            <p class="text-xs text-gray-400 font-mono">{{ currentItem?.threadId?.substring(0,8) }}...
-                            </p>
-                        </div>
-                    </div>
-                    <button @click="closeChatModal"
-                        class="bg-gray-700 hover:bg-gray-600 w-8 h-8 rounded-full flex items-center justify-center text-gray-300 transition-colors">
-                        <i class="ri-close-line"></i>
-                    </button>
-                </div>
-
-                <!-- Messages Area -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a] chat-bg scroll-smooth"
-                    ref="chatContainer">
-
-                    <div v-if="chatLoading" class="flex justify-center py-10">
-                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500"></div>
-                    </div>
-
-                    <div v-else-if="!chatMessages.length" class="text-center py-10 text-gray-500 text-sm">
-                        Mesaj geçmişi bulunamadı.
-                    </div>
-
-                    <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex flex-col"
-                        :class="msg.role === 'user' ? 'items-end' : 'items-start'">
-
-                        <div class="max-w-[85%] sm:max-w-[75%] rounded-lg px-3 py-1.5 shadow-sm text-sm relative leading-snug break-words"
-                            :class="msg.role === 'user' ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none' : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'">
-
-                            <!-- Text -->
-                            <div class="whitespace-pre-wrap">{{ msg.text }}</div>
-
-                            <!-- Metadata (Time) -->
-                            <div class="text-[10px] text-right mt-1 opacity-60 flex gap-1 justify-end items-center">
-                                {{ formatTime(msg.created_at) }}
-                                <i v-if="msg.role === 'user'" class="ri-check-double-line text-blue-400"></i>
+                        <!-- Test Search -->
+                        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl">
+                            <h3 class="text-white font-bold mb-4">🔎 Test Araması</h3>
+                            <div class="flex gap-4 mb-4">
+                                <input v-model="testQuery" @keyup.enter="performTestSearch" type="text"
+                                    placeholder="Örn: 2+1 daire fiyatları ne kadar?"
+                                    class="flex-1 bg-gray-900 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-brand-500">
+                                <button @click="performTestSearch"
+                                    class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Ara</button>
+                            </div>
+                            <div v-if="testResults.length > 0" class="space-y-2">
+                                <div v-for="(res, idx) in testResults" :key="idx"
+                                    class="bg-gray-900 p-3 rounded border border-gray-700 text-sm">
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>Skor: {{ res.score.toFixed(3) }}</span>
+                                        <a :href="res.url" target="_blank" class="text-blue-500 hover:underline">{{
+                                            res.url }}</a>
+                                    </div>
+                                    <p class="text-gray-300">{{ res.content }}</p>
+                                </div>
                             </div>
                         </div>
+
+                    </div> <!-- End Sources Tab -->
+                </div>
+
+                <!-- NOTE MODAL (Fixed Overlay) -->
+                <div v-if="showNoteModal"
+                    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div
+                        class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg border border-gray-600 transform transition-all scale-100 ring-1 ring-white/10">
+                        <div
+                            class="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-xl">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i class="ri-sticky-note-2-fill text-brand-500"></i> Not Düzenle
+                            </h3>
+                            <button @click="closeNoteModal" class="text-gray-400 hover:text-white transition-colors"><i
+                                    class="ri-close-circle-fill text-2xl"></i></button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-sm text-gray-400 mb-3 flex items-center gap-2">
+                                <i class="ri-user-line"></i> Müşteri: <span class="text-white font-semibold">{{
+                                    currentItem?.name }}</span>
+                            </p>
+                            <textarea v-model="tempNote" rows="5"
+                                class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none text-sm leading-relaxed"
+                                placeholder="Ofis içi notlarınızı buraya girebilirsiniz..."></textarea>
+                            <p class="text-xs text-gray-500 mt-2 text-right">Bu not sadece admin panelinde görünür.</p>
+                        </div>
+                        <div
+                            class="px-6 py-4 bg-gray-900/50 rounded-b-xl flex justify-end gap-3 border-t border-gray-700">
+                            <button @click="closeNoteModal"
+                                class="px-4 py-2 text-gray-300 hover:text-white text-sm font-medium transition-colors hover:bg-gray-800 rounded-lg">İptal</button>
+                            <button @click="saveNote"
+                                class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-brand-500/20 transition-all transform active:scale-95">Kaydet</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Fake Input Area (Just for looks) -->
-                <div
-                    class="bg-gray-800 px-4 py-3 flex items-center gap-2 border-t border-gray-700 opacity-80 cursor-not-allowed">
-                    <i class="ri-emoji-sticker-line text-gray-400 text-xl"></i>
-                    <i class="ri-add-line text-gray-400 text-xl"></i>
-                    <div class="flex-1 bg-gray-700 rounded-lg px-4 py-2 text-sm text-gray-500">Bu sohbet sona erdi.
+
+                <!-- CHAT MODAL (NEW) -->
+                <div v-if="showChatModal"
+                    class="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4">
+                    <div
+                        class="bg-chat-bg w-full max-w-2xl h-[80vh] flex flex-col rounded-xl overflow-hidden shadow-2xl relative border border-gray-700 transform transition-all">
+
+                        <!-- Header -->
+                        <div
+                            class="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700 z-10">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
+                                    <i class="ri-user-3-fill text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-bold text-sm">{{ currentItem?.name || 'Ziyaretçi' }}</h3>
+                                    <p class="text-xs text-gray-400 font-mono">{{ currentItem?.threadId?.substring(0,8)
+                                        }}...
+                                    </p>
+                                </div>
+                            </div>
+                            <button @click="closeChatModal"
+                                class="bg-gray-700 hover:bg-gray-600 w-8 h-8 rounded-full flex items-center justify-center text-gray-300 transition-colors">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
+
+                        <!-- Messages Area -->
+                        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a] chat-bg scroll-smooth"
+                            ref="chatContainer">
+
+                            <div v-if="chatLoading" class="flex justify-center py-10">
+                                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500">
+                                </div>
+                            </div>
+
+                            <div v-else-if="!chatMessages.length" class="text-center py-10 text-gray-500 text-sm">
+                                Mesaj geçmişi bulunamadı.
+                            </div>
+
+                            <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex flex-col"
+                                :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+
+                                <div class="max-w-[85%] sm:max-w-[75%] rounded-lg px-3 py-1.5 shadow-sm text-sm relative leading-snug break-words"
+                                    :class="msg.role === 'user' ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none' : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'">
+
+                                    <!-- Text -->
+                                    <div class="whitespace-pre-wrap">{{ msg.text }}</div>
+
+                                    <!-- Metadata (Time) -->
+                                    <div
+                                        class="text-[10px] text-right mt-1 opacity-60 flex gap-1 justify-end items-center">
+                                        {{ formatTime(msg.created_at) }}
+                                        <i v-if="msg.role === 'user'" class="ri-check-double-line text-blue-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fake Input Area (Just for looks) -->
+                        <div
+                            class="bg-gray-800 px-4 py-3 flex items-center gap-2 border-t border-gray-700 opacity-80 cursor-not-allowed">
+                            <i class="ri-emoji-sticker-line text-gray-400 text-xl"></i>
+                            <i class="ri-add-line text-gray-400 text-xl"></i>
+                            <div class="flex-1 bg-gray-700 rounded-lg px-4 py-2 text-sm text-gray-500">Bu sohbet sona
+                                erdi.
+                            </div>
+                            <i class="ri-mic-line text-gray-400 text-xl"></i>
+                        </div>
                     </div>
-                    <i class="ri-mic-line text-gray-400 text-xl"></i>
                 </div>
-            </div>
+
         </div>
 
-    </div>
+        <script>
+            const { createApp, ref, onMounted, nextTick } = Vue;
 
-    <script>
-        const { createApp, ref, onMounted, nextTick } = Vue;
+            createApp({
+                setup() {
+                    // State
+                    const loading = ref(true);
+                    const isLoggedIn = ref(false);
+                    const password = ref("");
+                    const error = ref(null);
+                    const submitting = ref(false);
 
-        createApp({
-            setup() {
-                // State
-                const loading = ref(true);
-                const isLoggedIn = ref(false);
-                const password = ref("");
-                const error = ref(null);
-                const submitting = ref(false);
+                    const handoffs = ref([]);
+                    const stats = ref({});
+                    const loadingData = ref(false);
 
-                const handoffs = ref([]);
-                const stats = ref({});
-                const loadingData = ref(false);
+                    // Filters
+                    const filterStatus = ref("ALL");
+                    const filterDays = ref("");
+                    const filterCategory = ref("ALL");
+                    const filterTodayNew = ref(false);
+                    const searchQuery = ref("");
+                    const debouncedSearch = ref("");
 
-                // Filters
-                const filterStatus = ref("ALL");
-                const filterDays = ref("");
-                const filterCategory = ref("ALL");
-                const filterTodayNew = ref(false);
-                const searchQuery = ref("");
-                const debouncedSearch = ref("");
+                    // Status Menu
+                    const activeMenuId = ref(null);
+                    const statusOptions = ["NEW", "ARANDI", "RANDEVU", "KAPANDI", "SPAM"];
 
-                // Status Menu
-                const activeMenuId = ref(null);
-                const statusOptions = ["NEW", "ARANDI", "RANDEVU", "KAPANDI", "SPAM"];
+                    // Note Modal
+                    const showNoteModal = ref(false);
+                    const currentItem = ref(null);
+                    const tempNote = ref("");
 
-                // Note Modal
-                const showNoteModal = ref(false);
-                const currentItem = ref(null);
-                const tempNote = ref("");
+                    // Chat Modal
+                    const showChatModal = ref(false);
+                    const chatMessages = ref([]);
+                    const chatLoading = ref(false);
+                    const chatContainer = ref(null);
 
-                // Chat Modal
-                const showChatModal = ref(false);
-                const chatMessages = ref([]);
-                const chatLoading = ref(false);
-                const chatContainer = ref(null);
+                    // SOURCES STATE
+                    const currentTab = ref('dashboard');
+                    const sources = ref([]);
+                    const newSourceUrl = ref("");
+                    const addingSource = ref(false);
+                    const testQuery = ref("");
+                    const testResults = ref([]);
 
-                // Functions
-                const checkAuth = async () => {
-                    loading.value = true;
-                    try {
-                        const res = await fetch("/api/admin/check");
-                        const data = await res.json();
-                        if (data.ok) {
-                            isLoggedIn.value = true;
-                            initData();
-                        }
-                    } catch (e) { }
-                    loading.value = false;
-                };
+                    // DASHBOARD STATE
+                    const dashboardStats = ref({});
+                    let chartInstance = null;
+                    const BRAND_KEY = "stein-auf"; // Hardcoded for single-tenant Emlak instance
 
-                const initData = () => {
-                    fetchStats();
-                    fetchData();
-                };
+                    // Functions
+                    const checkAuth = async () => {
+                        loading.value = true;
+                        try {
+                            const res = await fetch("/api/admin/check");
+                            const data = await res.json();
+                            if (data.ok) {
+                                isLoggedIn.value = true;
+                                initData();
+                            }
+                        } catch (e) { }
+                        loading.value = false;
+                    };
 
-                const login = async () => {
-                    submitting.value = true;
-                    error.value = null;
-                    try {
-                        const res = await fetch("/api/admin/login", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ password: password.value })
-                        });
-                        const data = await res.json();
-                        if (data.ok) {
-                            isLoggedIn.value = true;
-                            password.value = "";
-                            initData();
-                        } else {
-                            error.value = data.error || "Giriş başarısız";
-                        }
-                    } catch (e) {
-                        error.value = "Hata oluştu";
-                    }
-                    submitting.value = false;
-                };
-
-                const logout = async () => {
-                    await fetch("/api/admin/logout", { method: "POST" });
-                    isLoggedIn.value = false;
-                };
-
-                const fetchStats = async () => {
-                    try {
-                        const res = await fetch("/api/admin/stats");
-                        const data = await res.json();
-                        if (data.ok) stats.value = data.stats;
-                    } catch (e) { }
-                };
-
-                const fetchData = async () => {
-                    loadingData.value = true;
-                    try {
-                        const params = new URLSearchParams();
-
-                        if (filterTodayNew.value) {
-                            params.append("status", "NEW");
-                            params.append("days", "1");
-                        } else {
-                            if (filterStatus.value !== 'ALL') params.append("status", filterStatus.value);
-                            if (filterDays.value) params.append("days", filterDays.value);
-                            if (filterCategory.value !== 'ALL') params.append("category", filterCategory.value);
-                        }
-
-                        if (debouncedSearch.value) params.append("q", debouncedSearch.value);
-
-                        const res = await fetch(`/api/admin/handoffs?${params.toString()}`);
-                        const data = await res.json();
-                        if (data.ok) handoffs.value = data.data;
-                    } catch (e) {
-                        console.error(e);
-                    }
-                    loadingData.value = false;
-                };
-
-                // Updates
-                const updateStatus = async (item, newStatus) => {
-                    activeMenuId.value = null;
-                    if (item.status === newStatus) return;
-
-                    const oldStatus = item.status;
-                    item.status = newStatus;
-
-                    try {
-                        await fetch(`/api/admin/handoffs/${item.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ status: newStatus })
-                        });
+                    const initData = () => {
+                        fetchDashboard();
                         fetchStats();
-                    } catch (e) {
-                        item.status = oldStatus;
-                        alert("Durum güncellenemedi");
-                    }
-                };
-
-                // Note Logic
-                const openNoteModal = (item) => {
-                    currentItem.value = item;
-                    tempNote.value = item.notes || "";
-                    showNoteModal.value = true;
-                };
-
-                const closeNoteModal = () => {
-                    showNoteModal.value = false;
-                    if (!showChatModal.value) currentItem.value = null; // Don't clear if chat is open
-                    tempNote.value = "";
-                };
-
-                const saveNote = async () => {
-                    if (!currentItem.value) return;
-                    const item = currentItem.value;
-                    const noteVal = tempNote.value;
-                    const oldNotes = item.notes;
-                    item.notes = noteVal;
-
-                    try {
-                        await fetch(`/api/admin/handoffs/${item.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ notes: noteVal })
-                        });
-                        closeNoteModal();
-                    } catch (e) {
-                        item.notes = oldNotes;
-                        alert("Not kaydedilemedi");
-                    }
-                };
-
-                // Chat Logic
-                const openChat = async (item) => {
-                    currentItem.value = item;
-                    showChatModal.value = true;
-                    chatLoading.value = true;
-                    chatMessages.value = [];
-
-                    try {
-                        const res = await fetch(`/api/admin/conversations/${item.threadId}`);
-                        const data = await res.json();
-                        if (data.ok) {
-                            chatMessages.value = data.messages;
-                            await nextTick();
-                            scrollToBottom();
-                        }
-                    } catch (e) {
-                        console.error("Chat load error", e);
-                    }
-                    chatLoading.value = false;
-                };
-
-                const closeChatModal = () => {
-                    showChatModal.value = false;
-                    currentItem.value = null;
-                    chatMessages.value = [];
-                };
-
-                const scrollToBottom = () => {
-                    if (chatContainer.value) {
-                        chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-                    }
-                };
-
-                // Helpers
-                const toggleTodayNew = () => {
-                    filterTodayNew.value = !filterTodayNew.value;
-                    if (filterTodayNew.value) {
-                        filterStatus.value = "NEW";
-                        filterDays.value = "1";
-                        filterCategory.value = "ALL";
-                    } else {
-                        filterStatus.value = "ALL";
-                        filterDays.value = "";
-                    }
-                    fetchData();
-                };
-
-                let timeout = null;
-                const debounceSearch = () => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        debouncedSearch.value = searchQuery.value;
                         fetchData();
-                    }, 400);
-                };
+                        fetchSources(); // Load sources too
+                    };
 
-                const openStatusMenu = (item) => {
-                    activeMenuId.value = (activeMenuId.value === item.id) ? null : item.id;
-                };
+                    const fetchDashboard = async () => {
+                        if (!isLoggedIn.value) return;
+                        try {
+                            const res = await fetch(`/api/stats?brand=${BRAND_KEY}`);
+                            const data = await res.json();
+                            if (data.success) {
+                                dashboardStats.value = data.stats;
+                                renderChart(data.stats.chartData);
+                            }
+                        } catch (e) { console.error(e); }
+                    };
 
-                const getStatusColor = (status) => {
-                    switch (status) {
-                        case 'NEW': return 'bg-blue-900/40 text-blue-300 border-blue-700/50 hover:bg-blue-800/50';
-                        case 'ARANDI': return 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50 hover:bg-yellow-800/50';
-                        case 'RANDEVU': return 'bg-green-900/40 text-green-300 border-green-700/50 hover:bg-green-800/50';
-                        case 'KAPANDI': return 'bg-gray-700/40 text-gray-400 border-gray-600/50 hover:bg-gray-600/50';
-                        case 'SPAM': return 'bg-red-900/40 text-red-300 border-red-700/50 hover:bg-red-800/50';
-                        default: return 'bg-gray-800 text-gray-400 border-gray-700';
-                    }
-                };
+                    const renderChart = (chartData) => {
+                        if (!chartData) return;
+                        nextTick(() => {
+                            const ctx = document.getElementById('chartCanvas');
+                            if (!ctx) return;
+                            if (chartInstance) chartInstance.destroy();
 
-                const isStaleNew = (item) => {
-                    if (item.status !== 'NEW') return false;
-                    const date = new Date(item.date);
-                    const now = new Date();
-                    const diffMs = now - date;
-                    return diffMs > 24 * 60 * 60 * 1000;
-                };
+                            const labels = chartData.map(d => d.day);
+                            const points = chartData.map(d => d.count);
 
-                const cleanPhone = (phone) => {
-                    return String(phone).replace(/\D/g, '');
-                };
+                            chartInstance = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: labels,
+                                    datasets: [{
+                                        label: 'Sohbet Sayısı',
+                                        data: points,
+                                        backgroundColor: '#CEA45E', // brand-500
+                                        borderRadius: 4,
+                                        hoverBackgroundColor: '#B08846'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            backgroundColor: '#1F2937',
+                                            titleColor: '#fff',
+                                            bodyColor: '#CEA45E',
+                                            borderColor: '#374151',
+                                            borderWidth: 1
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                                            ticks: { color: '#9CA3AF', precision: 0 }
+                                        },
+                                        x: {
+                                            grid: { display: false },
+                                            ticks: { color: '#9CA3AF' }
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    };
 
-                const timeAgo = (dateStr) => {
-                    if (!dateStr) return "";
-                    const date = new Date(dateStr);
-                    const now = new Date();
-                    const diff = (now - date) / 1000;
+                    const login = async () => {
+                        submitting.value = true;
+                        error.value = null;
+                        try {
+                            const res = await fetch("/api/admin/login", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ password: password.value })
+                            });
+                            const data = await res.json();
+                            if (data.ok) {
+                                isLoggedIn.value = true;
+                                password.value = "";
+                                initData();
+                            } else {
+                                error.value = data.error || "Giriş başarısız";
+                            }
+                        } catch (e) {
+                            error.value = "Hata oluştu";
+                        }
+                        submitting.value = false;
+                    };
 
-                    if (diff < 60) return "Az önce";
-                    if (diff < 3600) return Math.floor(diff / 60) + " dk önce";
-                    if (diff < 86400) return Math.floor(diff / 3600) + " saat önce";
-                    if (diff < 604800) return Math.floor(diff / 86400) + " gün önce";
-                    return date.toLocaleDateString("tr-TR", { day: 'numeric', month: 'short' });
-                };
+                    const logout = async () => {
+                        await fetch("/api/admin/logout", { method: "POST" });
+                        isLoggedIn.value = false;
+                    };
 
-                const formatFullDate = (s) => {
-                    if (!s) return "";
-                    try {
-                        return new Date(s).toLocaleString("tr-TR");
-                    } catch (e) { return ""; }
-                };
+                    /* SOURCES METHODS */
+                    const fetchSources = async () => {
+                        try {
+                            // Assuming brand_key is handled by backend or cookie, but our API expects query param often.
+                            // Actually admin_sources.js router expects ?brand_key. 
+                            // In login we don't return brandKey explicitly to frontend state here yet. 
+                            // Let's assume backend middleware handles it or we hardcode a 'default' or fetch from stats.
+                            // For now, let's pass a dummy or known key if needed, OR adjust router to be simpler.
+                            // Wait, router says: const brandKey = req.query.brand_key;
+                            // We need to store brandKey in frontend after login if we want to filter specific brand.
+                            // But since this is a single-tenant bot per folder, we can probably hardcode 'stein-auf' or get it from an endpoint.
+                            // Let's hardcode 'stein-auf' for Emlak bot for now or ensure backend session works.
+                            // Better: /api/admin/check return brandKey.
 
-                const formatTime = (s) => {
-                    if (!s) return "";
-                    try {
-                        return new Date(s).toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' });
-                    } catch (e) { return ""; }
-                };
+                            const res = await fetch(`/api/admin/sources?brand_key=${BRAND_KEY}`); // TODO: Dynamic
+                            const data = await res.json();
+                            if (data.sources) sources.value = data.sources;
+                        } catch (e) { console.error(e); }
+                    };
 
-                onMounted(() => {
-                    checkAuth();
-                });
+                    // Watch tab
+                    const { watch } = Vue;
+                    watch(currentTab, (val) => {
+                        if (val === 'sources') fetchSources();
+                        if (val === 'dashboard') fetchDashboard();
+                    });
 
-                return {
-                    loading, isLoggedIn, password, error, submitting,
-                    handoffs, stats, loadingData,
-                    filterStatus, filterDays, filterCategory, filterTodayNew, searchQuery, debounceSearch,
-                    activeMenuId, statusOptions,
-                    showNoteModal, tempNote, currentItem,
-                    showChatModal, chatMessages, chatLoading, chatContainer, // Chat state
-                    login, logout, fetchData, fetchStats, toggleTodayNew,
-                    updateStatus, openStatusMenu, getStatusColor,
-                    openNoteModal, closeNoteModal, saveNote,
-                    openChat, closeChatModal, // Chat Actions
-                    cleanPhone, timeAgo, formatFullDate, formatTime, isStaleNew
-                };
-            }
-        }).mount('#app');
-    </script>
+                    const addSource = async () => {
+                        if (!newSourceUrl.value) return;
+                        addingSource.value = true;
+                        try {
+                            const res = await fetch("/api/admin/sources", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ brand_key: 'stein-auf', url: newSourceUrl.value })
+                            });
+                            if (res.ok) {
+                                newSourceUrl.value = "";
+                                fetchSources();
+                            } else {
+                                alert("Ekleme başarısız");
+                            }
+                        } catch (e) { alert("Hata"); }
+                        addingSource.value = false;
+                    };
+
+                    const toggleSource = async (src) => {
+                        // Logic for enabled toggle
+                        const newState = src.enabled === false ? true : false;
+                        // Backend expects { enabled: bool }
+                        try {
+                            await fetch(`/api/admin/sources/${src.id}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ enabled: newState })
+                            });
+                            // update local to reflect
+                            src.enabled = newState;
+                        } catch (e) { alert("Güncelleme hatası"); }
+                    };
+
+                    const deleteSource = async (src) => {
+                        if (!confirm("Bu kaynağı ve tüm verilerini silmek istediğinize emin misiniz?")) return;
+                        try {
+                            await fetch(`/api/admin/sources/${src.id}`, { method: "DELETE" });
+                            fetchSources();
+                        } catch (e) { alert("Silme hatası"); }
+                    };
+
+                    const indexSource = async (src) => {
+                        src.status = 'indexing'; // optimistic update
+                        try {
+                            fetch(`/api/admin/sources/${src.id}/index`, { method: "POST" })
+                                .then(() => {
+                                    setTimeout(fetchSources, 2000); // refresh after a bit
+                                });
+                        } catch (e) { src.status = 'error'; }
+                    };
+
+                    const performTestSearch = async () => {
+                        if (!testQuery.value) return;
+                        try {
+                            const res = await fetch(`/api/admin/sources/search?brand_key=stein-auf&q=${encodeURIComponent(testQuery.value)}`);
+                            const data = await res.json();
+                            testResults.value = data.results || [];
+                        } catch (e) { console.error(e); }
+                    };
+
+
+                    const fetchStats = async () => {
+                        try {
+                            const res = await fetch("/api/admin/stats");
+                            const data = await res.json();
+                            if (data.ok) stats.value = data.stats;
+                        } catch (e) { }
+                    };
+
+                    const fetchData = async () => {
+                        loadingData.value = true;
+                        try {
+                            const params = new URLSearchParams();
+
+                            if (filterTodayNew.value) {
+                                params.append("status", "NEW");
+                                params.append("days", "1");
+                            } else {
+                                if (filterStatus.value !== 'ALL') params.append("status", filterStatus.value);
+                                if (filterDays.value) params.append("days", filterDays.value);
+                                if (filterCategory.value !== 'ALL') params.append("category", filterCategory.value);
+                            }
+
+                            if (debouncedSearch.value) params.append("q", debouncedSearch.value);
+
+                            const res = await fetch(`/api/admin/handoffs?${params.toString()}`);
+                            const data = await res.json();
+                            if (data.ok) handoffs.value = data.data;
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        loadingData.value = false;
+                    };
+
+
+                    // Updates
+                    const updateStatus = async (item, newStatus) => {
+                        activeMenuId.value = null;
+                        if (item.status === newStatus) return;
+
+                        const oldStatus = item.status;
+                        item.status = newStatus;
+
+                        try {
+                            await fetch(`/api/admin/handoffs/${item.id}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ status: newStatus })
+                            });
+                            fetchStats();
+                        } catch (e) {
+                            item.status = oldStatus;
+                            alert("Durum güncellenemedi");
+                        }
+                    };
+
+                    // Note Logic
+                    const openNoteModal = (item) => {
+                        currentItem.value = item;
+                        tempNote.value = item.notes || "";
+                        showNoteModal.value = true;
+                    };
+
+                    const closeNoteModal = () => {
+                        showNoteModal.value = false;
+                        if (!showChatModal.value) currentItem.value = null; // Don't clear if chat is open
+                        tempNote.value = "";
+                    };
+
+                    const saveNote = async () => {
+                        if (!currentItem.value) return;
+                        const item = currentItem.value;
+                        const noteVal = tempNote.value;
+                        const oldNotes = item.notes;
+                        item.notes = noteVal;
+
+                        try {
+                            await fetch(`/api/admin/handoffs/${item.id}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ notes: noteVal })
+                            });
+                            closeNoteModal();
+                        } catch (e) {
+                            item.notes = oldNotes;
+                            alert("Not kaydedilemedi");
+                        }
+                    };
+
+                    // Chat Logic
+                    const openChat = async (item) => {
+                        currentItem.value = item;
+                        showChatModal.value = true;
+                        chatLoading.value = true;
+                        chatMessages.value = [];
+
+                        try {
+                            const res = await fetch(`/api/admin/conversations/${item.threadId}`);
+                            const data = await res.json();
+                            if (data.ok) {
+                                chatMessages.value = data.messages;
+                                await nextTick();
+                                scrollToBottom();
+                            }
+                        } catch (e) {
+                            console.error("Chat load error", e);
+                        }
+                        chatLoading.value = false;
+                    };
+
+                    const closeChatModal = () => {
+                        showChatModal.value = false;
+                        currentItem.value = null;
+                        chatMessages.value = [];
+                    };
+
+                    const scrollToBottom = () => {
+                        if (chatContainer.value) {
+                            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                        }
+                    };
+
+                    // Helpers
+                    const toggleTodayNew = () => {
+                        filterTodayNew.value = !filterTodayNew.value;
+                        if (filterTodayNew.value) {
+                            filterStatus.value = "NEW";
+                            filterDays.value = "1";
+                            filterCategory.value = "ALL";
+                        } else {
+                            filterStatus.value = "ALL";
+                            filterDays.value = "";
+                        }
+                        fetchData();
+                    };
+
+                    let timeout = null;
+                    const debounceSearch = () => {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => {
+                            debouncedSearch.value = searchQuery.value;
+                            fetchData();
+                        }, 400);
+                    };
+
+                    const openStatusMenu = (item) => {
+                        activeMenuId.value = (activeMenuId.value === item.id) ? null : item.id;
+                    };
+
+                    const getStatusColor = (status) => {
+                        switch (status) {
+                            case 'NEW': return 'bg-blue-900/40 text-blue-300 border-blue-700/50 hover:bg-blue-800/50';
+                            case 'ARANDI': return 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50 hover:bg-yellow-800/50';
+                            case 'RANDEVU': return 'bg-green-900/40 text-green-300 border-green-700/50 hover:bg-green-800/50';
+                            case 'KAPANDI': return 'bg-gray-700/40 text-gray-400 border-gray-600/50 hover:bg-gray-600/50';
+                            case 'SPAM': return 'bg-red-900/40 text-red-300 border-red-700/50 hover:bg-red-800/50';
+                            default: return 'bg-gray-800 text-gray-400 border-gray-700';
+                        }
+                    };
+
+                    const isStaleNew = (item) => {
+                        if (item.status !== 'NEW') return false;
+                        const date = new Date(item.date);
+                        const now = new Date();
+                        const diffMs = now - date;
+                        return diffMs > 24 * 60 * 60 * 1000;
+                    };
+
+                    const cleanPhone = (phone) => {
+                        return String(phone).replace(/\D/g, '');
+                    };
+
+                    const timeAgo = (dateStr) => {
+                        if (!dateStr) return "";
+                        const date = new Date(dateStr);
+                        const now = new Date();
+                        const diff = (now - date) / 1000;
+
+                        if (diff < 60) return "Az önce";
+                        if (diff < 3600) return Math.floor(diff / 60) + " dk önce";
+                        if (diff < 86400) return Math.floor(diff / 3600) + " saat önce";
+                        if (diff < 604800) return Math.floor(diff / 86400) + " gün önce";
+                        return date.toLocaleDateString("tr-TR", { day: 'numeric', month: 'short' });
+                    };
+
+                    const formatFullDate = (s) => {
+                        if (!s) return "";
+                        try {
+                            return new Date(s).toLocaleString("tr-TR");
+                        } catch (e) { return ""; }
+                    };
+
+                    const formatTime = (s) => {
+                        if (!s) return "";
+                        try {
+                            return new Date(s).toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' });
+                        } catch (e) { return ""; }
+                    };
+
+                    onMounted(() => {
+                        checkAuth();
+                    });
+
+                    return {
+                        loading, isLoggedIn, password, error, submitting,
+                        handoffs, stats, loadingData,
+                        filterStatus, filterDays, filterCategory, filterTodayNew, searchQuery, debounceSearch,
+                        activeMenuId, statusOptions,
+                        showNoteModal, tempNote, currentItem,
+                        showChatModal, chatMessages, chatLoading, chatContainer, // Chat state
+                        login, logout, fetchData, fetchStats, toggleTodayNew,
+                        updateStatus, openStatusMenu, getStatusColor,
+                        openNoteModal, closeNoteModal, saveNote,
+                        openChat, closeChatModal, // Chat Actions
+                        cleanPhone, timeAgo, formatFullDate, formatTime, isStaleNew,
+                        // Sources
+                        currentTab,
+                        sources,
+                        newSourceUrl,
+                        addingSource,
+                        testQuery,
+                        testResults,
+                        fetchSources,
+                        addSource,
+                        toggleSource,
+                        deleteSource,
+                        indexSource,
+                        performTestSearch
+                    };
+                }
+            }).mount('#app');
+        </script>
 
 </body>
 
