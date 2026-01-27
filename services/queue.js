@@ -32,7 +32,7 @@ class ScraperQueue {
             console.error(`[queue] Job failed for ${sourceId}:`, e);
             // Hata durumunu DB'ye yaz
             try {
-                await updateSourceStatus(sourceId, { status: "error", lastError: e.message });
+                await updateSourceStatus(sourceId, { status: "error", last_error: e.message });
             } catch (_) { }
         } finally {
             this.processing = false;
@@ -85,7 +85,11 @@ class ScraperQueue {
         await saveSourceChunks(id, source.brand_key, embeddedChunks);
 
         // 7. Finish
-        await updateSourceStatus(id, { status: "idle", indexed: true });
+        await updateSourceStatus(id, {
+            status: "idle",
+            last_indexed_at: new Date(),
+            chunk_count: chunks.length
+        });
         console.log(`[queue] Finished ${id}. Chunks: ${chunks.length}`);
     }
 }
