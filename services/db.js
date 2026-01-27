@@ -144,7 +144,7 @@ export async function logChatMessage({
   VALUES ($1, $2, $3, $4, $5, now(), now())
   ON CONFLICT (thread_id)
   DO UPDATE SET
-    brand_key = EXCLUDED.brand_key,
+      brand_key = EXCLUDED.brand_key,
     last_message_at = now(),
     visitor_id = COALESCE(conversations.visitor_id, EXCLUDED.visitor_id),
     session_id = COALESCE(conversations.session_id, EXCLUDED.session_id),
@@ -254,9 +254,6 @@ export async function searchVectors(brandKey, queryEmbedding, limit = 5) {
 
 /* ================== SOURCES (Admin) ================== */
 
-// ensureTables içinde şema update için "ALTER TABLE..." ekledik;
-// aşağıda da fonksiyonları implemente ediyoruz.
-
 export async function getSources(brandKey) {
   const client = await pool.connect();
   try {
@@ -326,9 +323,6 @@ export async function updateSourceStatus(id, { status, last_error }) {
       fields.push(`last_error = $${idx++}`);
       values.push(last_error);
     }
-    // Her güncellemede timestamp yenilemek istersen:
-    // fields.push(`last_indexed_at = now()`); 
-    // Ama belki status 'idle' olunca değil, 'indexed' olunca? Senaryoya göre değişir.
 
     if (fields.length === 0) return null;
 
@@ -349,8 +343,6 @@ export async function updateSourceStatus(id, { status, last_error }) {
 export async function deleteSource(id) {
   const client = await pool.connect();
   try {
-    // source_chunks ve embeddings CASCADE ile silinir (tablo tanımında ON DELETE CASCADE varsa).
-    // Emin olmak için ensureTables'a bak: "REFERENCES sources(id) ON DELETE CASCADE" var.
     await client.query(`DELETE FROM sources WHERE id = $1`, [id]);
     return true;
   } finally {
@@ -375,13 +367,12 @@ export async function saveSourceChunks(sourceId, chunks) {
     await client.query("BEGIN");
 
     // 1. Chunk'ları ve embeddingleri ekle
-    // Performans için loop ile yapıyoruz, çok büyükse bulk insert gerekir.
     for (const chunk of chunks) {
       const cRes = await client.query(`
         INSERT INTO source_chunks (source_id, brand_key, content)
         VALUES ($1, $2, $3)
         RETURNING id, brand_key
-      `, [sourceId, chunk.brand_key || 'unknown', chunk.content]); // brand_key chunk içinde gelmeli veya parametre olmalı
+      `, [sourceId, chunk.brand_key || 'unknown', chunk.content]);
 
       const chunkId = cRes.rows[0].id;
       const bKey = cRes.rows[0].brand_key;
@@ -445,4 +436,3 @@ export async function getDashboardStats(brandKey) {
     client.release();
   }
 }
-
