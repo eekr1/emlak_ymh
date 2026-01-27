@@ -403,3 +403,46 @@ export async function saveSourceChunks(sourceId, chunks) {
   }
 }
 
+export async function getDashboardStats(brandKey) {
+  const client = await pool.connect();
+  try {
+    // Basic stats based on brand_key
+    // Note: If brandKey is null, these queries might return 0 or error depending on logic.
+    // Assuming brandKey is provided.
+
+    // 1. Total Conversations
+    const qConvs = client.query(`SELECT count(*) FROM conversations WHERE brand_key = $1`, [brandKey]);
+
+    // 2. Total Messages
+    const qMsgs = client.query(`
+      SELECT count(*) FROM messages m
+      JOIN conversations c ON m.conversation_id = c.id
+      WHERE c.brand_key = $1
+    `, [brandKey]);
+
+    // 3. Leads (handoffs)
+    const qLeads = client.query(`
+      SELECT count(*) FROM messages m
+      JOIN conversations c ON m.conversation_id = c.id
+      WHERE c.brand_key = $1 AND m.handoff_kind IS NOT NULL
+    `, [brandKey]);
+
+    // 4. Sources
+    const qSources = client.query(`SELECT count(*) FROM sources WHERE brand_key = $1`, [brandKey]);
+
+    const [rConvs, rMsgs, rLeads, rSources] = await Promise.all([qConvs, qMsgs, qLeads, qSources]);
+
+    return {
+      conversations: parseInt(rConvs.rows[0].count),
+      messages: parseInt(rMsgs.rows[0].count),
+      leads: parseInt(rLeads.rows[0].count),
+      sources: parseInt(rSources.rows[0].count)
+    };
+  } catch (e) {
+    console.error("[db] getDashboardStats error:", e);
+    return { conversations: 0, messages: 0, leads: 0, sources: 0 };
+  } finally {
+    client.release();
+  }
+}
+
