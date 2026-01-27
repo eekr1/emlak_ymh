@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YMH Hukuk - Admin CRM</title>
+    <title>YMH Emlak - Admin CRM</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -86,7 +86,7 @@
             <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
                 <div class="text-center mb-8">
                     <i class="ri-scales-3-line text-5xl text-brand-500 mb-4 inline-block"></i>
-                    <h1 class="text-2xl font-bold text-white">YMH Hukuk CRM</h1>
+                    <h1 class="text-2xl font-bold text-white">YMH Emlak CRM</h1>
                     <p class="text-gray-400 text-sm mt-2">Yönetim paneline giriş yapın</p>
                 </div>
                 <form @submit.prevent="login" class="space-y-6">
@@ -120,7 +120,7 @@
                 class="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-6 flex-shrink-0 z-20">
                 <div class="flex items-center gap-3">
                     <i class="ri-briefcase-4-line text-brand-500 text-2xl"></i>
-                    <span class="font-bold text-lg tracking-wide">YMH Hukuk <span
+                    <span class="font-bold text-lg tracking-wide">YMH Emlak <span
                             class="text-gray-500 text-sm font-normal ml-1">CRM v4.0</span></span>
                 </div>
                 <div class="flex items-center gap-6">
@@ -758,493 +758,494 @@
                         </div>
                     </div>
                 </div>
-
+            </main>
         </div>
+    </div>
 
-        <script>
-            const { createApp, ref, onMounted, nextTick } = Vue;
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue;
 
-            createApp({
-                setup() {
-                    // State
-                    const loading = ref(true);
-                    const isLoggedIn = ref(false);
-                    const password = ref("");
-                    const error = ref(null);
-                    const submitting = ref(false);
+        createApp({
+            setup() {
+                // State
+                const loading = ref(true);
+                const isLoggedIn = ref(false);
+                const password = ref("");
+                const error = ref(null);
+                const submitting = ref(false);
 
-                    const handoffs = ref([]);
-                    const stats = ref({});
-                    const loadingData = ref(false);
+                const handoffs = ref([]);
+                const stats = ref({});
+                const loadingData = ref(false);
 
-                    // Filters
-                    const filterStatus = ref("ALL");
-                    const filterDays = ref("");
-                    const filterCategory = ref("ALL");
-                    const filterTodayNew = ref(false);
-                    const searchQuery = ref("");
-                    const debouncedSearch = ref("");
+                // Filters
+                const filterStatus = ref("ALL");
+                const filterDays = ref("");
+                const filterCategory = ref("ALL");
+                const filterTodayNew = ref(false);
+                const searchQuery = ref("");
+                const debouncedSearch = ref("");
 
-                    // Status Menu
-                    const activeMenuId = ref(null);
-                    const statusOptions = ["NEW", "ARANDI", "RANDEVU", "KAPANDI", "SPAM"];
+                // Status Menu
+                const activeMenuId = ref(null);
+                const statusOptions = ["NEW", "ARANDI", "RANDEVU", "KAPANDI", "SPAM"];
 
-                    // Note Modal
-                    const showNoteModal = ref(false);
-                    const currentItem = ref(null);
-                    const tempNote = ref("");
+                // Note Modal
+                const showNoteModal = ref(false);
+                const currentItem = ref(null);
+                const tempNote = ref("");
 
-                    // Chat Modal
-                    const showChatModal = ref(false);
-                    const chatMessages = ref([]);
-                    const chatLoading = ref(false);
-                    const chatContainer = ref(null);
+                // Chat Modal
+                const showChatModal = ref(false);
+                const chatMessages = ref([]);
+                const chatLoading = ref(false);
+                const chatContainer = ref(null);
 
-                    // SOURCES STATE
-                    const currentTab = ref('dashboard');
-                    const sources = ref([]);
-                    const newSourceUrl = ref("");
-                    const addingSource = ref(false);
-                    const testQuery = ref("");
-                    const testResults = ref([]);
+                // SOURCES STATE
+                const currentTab = ref('dashboard');
+                const sources = ref([]);
+                const newSourceUrl = ref("");
+                const addingSource = ref(false);
+                const testQuery = ref("");
+                const testResults = ref([]);
 
-                    // DASHBOARD STATE
-                    const dashboardStats = ref({});
-                    let chartInstance = null;
-                    const BRAND_KEY = "stein-auf"; // Hardcoded for single-tenant Emlak instance
+                // DASHBOARD STATE
+                const dashboardStats = ref({});
+                let chartInstance = null;
+                const BRAND_KEY = "stein-auf"; // Hardcoded for single-tenant Emlak instance
 
-                    // Functions
-                    const checkAuth = async () => {
-                        loading.value = true;
-                        try {
-                            const res = await fetch("/api/admin/check");
-                            const data = await res.json();
-                            if (data.ok) {
-                                isLoggedIn.value = true;
-                                initData();
-                            }
-                        } catch (e) { }
-                        loading.value = false;
-                    };
+                // Functions
+                const checkAuth = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await fetch("/api/admin/check");
+                        const data = await res.json();
+                        if (data.ok) {
+                            isLoggedIn.value = true;
+                            initData();
+                        }
+                    } catch (e) { }
+                    loading.value = false;
+                };
 
-                    const initData = () => {
-                        fetchDashboard();
-                        fetchStats();
-                        fetchData();
-                        fetchSources(); // Load sources too
-                    };
+                const initData = () => {
+                    fetchDashboard();
+                    fetchStats();
+                    fetchData();
+                    fetchSources(); // Load sources too
+                };
 
-                    const fetchDashboard = async () => {
-                        if (!isLoggedIn.value) return;
-                        try {
-                            const res = await fetch(`/api/stats?brand=${BRAND_KEY}`);
-                            const data = await res.json();
-                            if (data.success) {
-                                dashboardStats.value = data.stats;
-                                renderChart(data.stats.chartData);
-                            }
-                        } catch (e) { console.error(e); }
-                    };
+                const fetchDashboard = async () => {
+                    if (!isLoggedIn.value) return;
+                    try {
+                        const res = await fetch(`/api/stats?brand=${BRAND_KEY}`);
+                        const data = await res.json();
+                        if (data.success) {
+                            dashboardStats.value = data.stats;
+                            renderChart(data.stats.chartData);
+                        }
+                    } catch (e) { console.error(e); }
+                };
 
-                    const renderChart = (chartData) => {
-                        if (!chartData) return;
-                        nextTick(() => {
-                            const ctx = document.getElementById('chartCanvas');
-                            if (!ctx) return;
-                            if (chartInstance) chartInstance.destroy();
+                const renderChart = (chartData) => {
+                    if (!chartData) return;
+                    nextTick(() => {
+                        const ctx = document.getElementById('chartCanvas');
+                        if (!ctx) return;
+                        if (chartInstance) chartInstance.destroy();
 
-                            const labels = chartData.map(d => d.day);
-                            const points = chartData.map(d => d.count);
+                        const labels = chartData.map(d => d.day);
+                        const points = chartData.map(d => d.count);
 
-                            chartInstance = new Chart(ctx, {
-                                type: 'bar',
-                                data: {
-                                    labels: labels,
-                                    datasets: [{
-                                        label: 'Sohbet Sayısı',
-                                        data: points,
-                                        backgroundColor: '#CEA45E', // brand-500
-                                        borderRadius: 4,
-                                        hoverBackgroundColor: '#B08846'
-                                    }]
+                        chartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Sohbet Sayısı',
+                                    data: points,
+                                    backgroundColor: '#CEA45E', // brand-500
+                                    borderRadius: 4,
+                                    hoverBackgroundColor: '#B08846'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#1F2937',
+                                        titleColor: '#fff',
+                                        bodyColor: '#CEA45E',
+                                        borderColor: '#374151',
+                                        borderWidth: 1
+                                    }
                                 },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: { display: false },
-                                        tooltip: {
-                                            backgroundColor: '#1F2937',
-                                            titleColor: '#fff',
-                                            bodyColor: '#CEA45E',
-                                            borderColor: '#374151',
-                                            borderWidth: 1
-                                        }
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                                        ticks: { color: '#9CA3AF', precision: 0 }
                                     },
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true,
-                                            grid: { color: 'rgba(75, 85, 99, 0.2)' },
-                                            ticks: { color: '#9CA3AF', precision: 0 }
-                                        },
-                                        x: {
-                                            grid: { display: false },
-                                            ticks: { color: '#9CA3AF' }
-                                        }
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: '#9CA3AF' }
                                     }
                                 }
-                            });
+                            }
                         });
-                    };
-
-                    const login = async () => {
-                        submitting.value = true;
-                        error.value = null;
-                        try {
-                            const res = await fetch("/api/admin/login", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ password: password.value })
-                            });
-                            const data = await res.json();
-                            if (data.ok) {
-                                isLoggedIn.value = true;
-                                password.value = "";
-                                initData();
-                            } else {
-                                error.value = data.error || "Giriş başarısız";
-                            }
-                        } catch (e) {
-                            error.value = "Hata oluştu";
-                        }
-                        submitting.value = false;
-                    };
-
-                    const logout = async () => {
-                        await fetch("/api/admin/logout", { method: "POST" });
-                        isLoggedIn.value = false;
-                    };
-
-                    /* SOURCES METHODS */
-                    const fetchSources = async () => {
-                        try {
-                            // Assuming brand_key is handled by backend or cookie, but our API expects query param often.
-                            // Actually admin_sources.js router expects ?brand_key. 
-                            // In login we don't return brandKey explicitly to frontend state here yet. 
-                            // Let's assume backend middleware handles it or we hardcode a 'default' or fetch from stats.
-                            // For now, let's pass a dummy or known key if needed, OR adjust router to be simpler.
-                            // Wait, router says: const brandKey = req.query.brand_key;
-                            // We need to store brandKey in frontend after login if we want to filter specific brand.
-                            // But since this is a single-tenant bot per folder, we can probably hardcode 'stein-auf' or get it from an endpoint.
-                            // Let's hardcode 'stein-auf' for Emlak bot for now or ensure backend session works.
-                            // Better: /api/admin/check return brandKey.
-
-                            const res = await fetch(`/api/admin/sources?brand_key=${BRAND_KEY}`); // TODO: Dynamic
-                            const data = await res.json();
-                            if (data.sources) sources.value = data.sources;
-                        } catch (e) { console.error(e); }
-                    };
-
-                    // Watch tab
-                    const { watch } = Vue;
-                    watch(currentTab, (val) => {
-                        if (val === 'sources') fetchSources();
-                        if (val === 'dashboard') fetchDashboard();
                     });
+                };
 
-                    const addSource = async () => {
-                        if (!newSourceUrl.value) return;
-                        addingSource.value = true;
-                        try {
-                            const res = await fetch("/api/admin/sources", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ brand_key: 'stein-auf', url: newSourceUrl.value })
-                            });
-                            if (res.ok) {
-                                newSourceUrl.value = "";
-                                fetchSources();
-                            } else {
-                                alert("Ekleme başarısız");
-                            }
-                        } catch (e) { alert("Hata"); }
-                        addingSource.value = false;
-                    };
-
-                    const toggleSource = async (src) => {
-                        // Logic for enabled toggle
-                        const newState = src.enabled === false ? true : false;
-                        // Backend expects { enabled: bool }
-                        try {
-                            await fetch(`/api/admin/sources/${src.id}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ enabled: newState })
-                            });
-                            // update local to reflect
-                            src.enabled = newState;
-                        } catch (e) { alert("Güncelleme hatası"); }
-                    };
-
-                    const deleteSource = async (src) => {
-                        if (!confirm("Bu kaynağı ve tüm verilerini silmek istediğinize emin misiniz?")) return;
-                        try {
-                            await fetch(`/api/admin/sources/${src.id}`, { method: "DELETE" });
-                            fetchSources();
-                        } catch (e) { alert("Silme hatası"); }
-                    };
-
-                    const indexSource = async (src) => {
-                        src.status = 'indexing'; // optimistic update
-                        try {
-                            fetch(`/api/admin/sources/${src.id}/index`, { method: "POST" })
-                                .then(() => {
-                                    setTimeout(fetchSources, 2000); // refresh after a bit
-                                });
-                        } catch (e) { src.status = 'error'; }
-                    };
-
-                    const performTestSearch = async () => {
-                        if (!testQuery.value) return;
-                        try {
-                            const res = await fetch(`/api/admin/sources/search?brand_key=stein-auf&q=${encodeURIComponent(testQuery.value)}`);
-                            const data = await res.json();
-                            testResults.value = data.results || [];
-                        } catch (e) { console.error(e); }
-                    };
-
-
-                    const fetchStats = async () => {
-                        try {
-                            const res = await fetch("/api/admin/stats");
-                            const data = await res.json();
-                            if (data.ok) stats.value = data.stats;
-                        } catch (e) { }
-                    };
-
-                    const fetchData = async () => {
-                        loadingData.value = true;
-                        try {
-                            const params = new URLSearchParams();
-
-                            if (filterTodayNew.value) {
-                                params.append("status", "NEW");
-                                params.append("days", "1");
-                            } else {
-                                if (filterStatus.value !== 'ALL') params.append("status", filterStatus.value);
-                                if (filterDays.value) params.append("days", filterDays.value);
-                                if (filterCategory.value !== 'ALL') params.append("category", filterCategory.value);
-                            }
-
-                            if (debouncedSearch.value) params.append("q", debouncedSearch.value);
-
-                            const res = await fetch(`/api/admin/handoffs?${params.toString()}`);
-                            const data = await res.json();
-                            if (data.ok) handoffs.value = data.data;
-                        } catch (e) {
-                            console.error(e);
-                        }
-                        loadingData.value = false;
-                    };
-
-
-                    // Updates
-                    const updateStatus = async (item, newStatus) => {
-                        activeMenuId.value = null;
-                        if (item.status === newStatus) return;
-
-                        const oldStatus = item.status;
-                        item.status = newStatus;
-
-                        try {
-                            await fetch(`/api/admin/handoffs/${item.id}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ status: newStatus })
-                            });
-                            fetchStats();
-                        } catch (e) {
-                            item.status = oldStatus;
-                            alert("Durum güncellenemedi");
-                        }
-                    };
-
-                    // Note Logic
-                    const openNoteModal = (item) => {
-                        currentItem.value = item;
-                        tempNote.value = item.notes || "";
-                        showNoteModal.value = true;
-                    };
-
-                    const closeNoteModal = () => {
-                        showNoteModal.value = false;
-                        if (!showChatModal.value) currentItem.value = null; // Don't clear if chat is open
-                        tempNote.value = "";
-                    };
-
-                    const saveNote = async () => {
-                        if (!currentItem.value) return;
-                        const item = currentItem.value;
-                        const noteVal = tempNote.value;
-                        const oldNotes = item.notes;
-                        item.notes = noteVal;
-
-                        try {
-                            await fetch(`/api/admin/handoffs/${item.id}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ notes: noteVal })
-                            });
-                            closeNoteModal();
-                        } catch (e) {
-                            item.notes = oldNotes;
-                            alert("Not kaydedilemedi");
-                        }
-                    };
-
-                    // Chat Logic
-                    const openChat = async (item) => {
-                        currentItem.value = item;
-                        showChatModal.value = true;
-                        chatLoading.value = true;
-                        chatMessages.value = [];
-
-                        try {
-                            const res = await fetch(`/api/admin/conversations/${item.threadId}`);
-                            const data = await res.json();
-                            if (data.ok) {
-                                chatMessages.value = data.messages;
-                                await nextTick();
-                                scrollToBottom();
-                            }
-                        } catch (e) {
-                            console.error("Chat load error", e);
-                        }
-                        chatLoading.value = false;
-                    };
-
-                    const closeChatModal = () => {
-                        showChatModal.value = false;
-                        currentItem.value = null;
-                        chatMessages.value = [];
-                    };
-
-                    const scrollToBottom = () => {
-                        if (chatContainer.value) {
-                            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-                        }
-                    };
-
-                    // Helpers
-                    const toggleTodayNew = () => {
-                        filterTodayNew.value = !filterTodayNew.value;
-                        if (filterTodayNew.value) {
-                            filterStatus.value = "NEW";
-                            filterDays.value = "1";
-                            filterCategory.value = "ALL";
+                const login = async () => {
+                    submitting.value = true;
+                    error.value = null;
+                    try {
+                        const res = await fetch("/api/admin/login", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ password: password.value })
+                        });
+                        const data = await res.json();
+                        if (data.ok) {
+                            isLoggedIn.value = true;
+                            password.value = "";
+                            initData();
                         } else {
-                            filterStatus.value = "ALL";
-                            filterDays.value = "";
+                            error.value = data.error || "Giriş başarısız";
                         }
+                    } catch (e) {
+                        error.value = "Hata oluştu";
+                    }
+                    submitting.value = false;
+                };
+
+                const logout = async () => {
+                    await fetch("/api/admin/logout", { method: "POST" });
+                    isLoggedIn.value = false;
+                };
+
+                /* SOURCES METHODS */
+                const fetchSources = async () => {
+                    try {
+                        // Assuming brand_key is handled by backend or cookie, but our API expects query param often.
+                        // Actually admin_sources.js router expects ?brand_key. 
+                        // In login we don't return brandKey explicitly to frontend state here yet. 
+                        // Let's assume backend middleware handles it or we hardcode a 'default' or fetch from stats.
+                        // For now, let's pass a dummy or known key if needed, OR adjust router to be simpler.
+                        // Wait, router says: const brandKey = req.query.brand_key;
+                        // We need to store brandKey in frontend after login if we want to filter specific brand.
+                        // But since this is a single-tenant bot per folder, we can probably hardcode 'stein-auf' or get it from an endpoint.
+                        // Let's hardcode 'stein-auf' for Emlak bot for now or ensure backend session works.
+                        // Better: /api/admin/check return brandKey.
+
+                        const res = await fetch(`/api/admin/sources?brand_key=${BRAND_KEY}`); // TODO: Dynamic
+                        const data = await res.json();
+                        if (data.sources) sources.value = data.sources;
+                    } catch (e) { console.error(e); }
+                };
+
+                // Watch tab
+                const { watch } = Vue;
+                watch(currentTab, (val) => {
+                    if (val === 'sources') fetchSources();
+                    if (val === 'dashboard') fetchDashboard();
+                });
+
+                const addSource = async () => {
+                    if (!newSourceUrl.value) return;
+                    addingSource.value = true;
+                    try {
+                        const res = await fetch("/api/admin/sources", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ brand_key: 'stein-auf', url: newSourceUrl.value })
+                        });
+                        if (res.ok) {
+                            newSourceUrl.value = "";
+                            fetchSources();
+                        } else {
+                            alert("Ekleme başarısız");
+                        }
+                    } catch (e) { alert("Hata"); }
+                    addingSource.value = false;
+                };
+
+                const toggleSource = async (src) => {
+                    // Logic for enabled toggle
+                    const newState = src.enabled === false ? true : false;
+                    // Backend expects { enabled: bool }
+                    try {
+                        await fetch(`/api/admin/sources/${src.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ enabled: newState })
+                        });
+                        // update local to reflect
+                        src.enabled = newState;
+                    } catch (e) { alert("Güncelleme hatası"); }
+                };
+
+                const deleteSource = async (src) => {
+                    if (!confirm("Bu kaynağı ve tüm verilerini silmek istediğinize emin misiniz?")) return;
+                    try {
+                        await fetch(`/api/admin/sources/${src.id}`, { method: "DELETE" });
+                        fetchSources();
+                    } catch (e) { alert("Silme hatası"); }
+                };
+
+                const indexSource = async (src) => {
+                    src.status = 'indexing'; // optimistic update
+                    try {
+                        fetch(`/api/admin/sources/${src.id}/index`, { method: "POST" })
+                            .then(() => {
+                                setTimeout(fetchSources, 2000); // refresh after a bit
+                            });
+                    } catch (e) { src.status = 'error'; }
+                };
+
+                const performTestSearch = async () => {
+                    if (!testQuery.value) return;
+                    try {
+                        const res = await fetch(`/api/admin/sources/search?brand_key=stein-auf&q=${encodeURIComponent(testQuery.value)}`);
+                        const data = await res.json();
+                        testResults.value = data.results || [];
+                    } catch (e) { console.error(e); }
+                };
+
+
+                const fetchStats = async () => {
+                    try {
+                        const res = await fetch("/api/admin/stats");
+                        const data = await res.json();
+                        if (data.ok) stats.value = data.stats;
+                    } catch (e) { }
+                };
+
+                const fetchData = async () => {
+                    loadingData.value = true;
+                    try {
+                        const params = new URLSearchParams();
+
+                        if (filterTodayNew.value) {
+                            params.append("status", "NEW");
+                            params.append("days", "1");
+                        } else {
+                            if (filterStatus.value !== 'ALL') params.append("status", filterStatus.value);
+                            if (filterDays.value) params.append("days", filterDays.value);
+                            if (filterCategory.value !== 'ALL') params.append("category", filterCategory.value);
+                        }
+
+                        if (debouncedSearch.value) params.append("q", debouncedSearch.value);
+
+                        const res = await fetch(`/api/admin/handoffs?${params.toString()}`);
+                        const data = await res.json();
+                        if (data.ok) handoffs.value = data.data;
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    loadingData.value = false;
+                };
+
+
+                // Updates
+                const updateStatus = async (item, newStatus) => {
+                    activeMenuId.value = null;
+                    if (item.status === newStatus) return;
+
+                    const oldStatus = item.status;
+                    item.status = newStatus;
+
+                    try {
+                        await fetch(`/api/admin/handoffs/${item.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        fetchStats();
+                    } catch (e) {
+                        item.status = oldStatus;
+                        alert("Durum güncellenemedi");
+                    }
+                };
+
+                // Note Logic
+                const openNoteModal = (item) => {
+                    currentItem.value = item;
+                    tempNote.value = item.notes || "";
+                    showNoteModal.value = true;
+                };
+
+                const closeNoteModal = () => {
+                    showNoteModal.value = false;
+                    if (!showChatModal.value) currentItem.value = null; // Don't clear if chat is open
+                    tempNote.value = "";
+                };
+
+                const saveNote = async () => {
+                    if (!currentItem.value) return;
+                    const item = currentItem.value;
+                    const noteVal = tempNote.value;
+                    const oldNotes = item.notes;
+                    item.notes = noteVal;
+
+                    try {
+                        await fetch(`/api/admin/handoffs/${item.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ notes: noteVal })
+                        });
+                        closeNoteModal();
+                    } catch (e) {
+                        item.notes = oldNotes;
+                        alert("Not kaydedilemedi");
+                    }
+                };
+
+                // Chat Logic
+                const openChat = async (item) => {
+                    currentItem.value = item;
+                    showChatModal.value = true;
+                    chatLoading.value = true;
+                    chatMessages.value = [];
+
+                    try {
+                        const res = await fetch(`/api/admin/conversations/${item.threadId}`);
+                        const data = await res.json();
+                        if (data.ok) {
+                            chatMessages.value = data.messages;
+                            await nextTick();
+                            scrollToBottom();
+                        }
+                    } catch (e) {
+                        console.error("Chat load error", e);
+                    }
+                    chatLoading.value = false;
+                };
+
+                const closeChatModal = () => {
+                    showChatModal.value = false;
+                    currentItem.value = null;
+                    chatMessages.value = [];
+                };
+
+                const scrollToBottom = () => {
+                    if (chatContainer.value) {
+                        chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                    }
+                };
+
+                // Helpers
+                const toggleTodayNew = () => {
+                    filterTodayNew.value = !filterTodayNew.value;
+                    if (filterTodayNew.value) {
+                        filterStatus.value = "NEW";
+                        filterDays.value = "1";
+                        filterCategory.value = "ALL";
+                    } else {
+                        filterStatus.value = "ALL";
+                        filterDays.value = "";
+                    }
+                    fetchData();
+                };
+
+                let timeout = null;
+                const debounceSearch = () => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        debouncedSearch.value = searchQuery.value;
                         fetchData();
-                    };
+                    }, 400);
+                };
 
-                    let timeout = null;
-                    const debounceSearch = () => {
-                        clearTimeout(timeout);
-                        timeout = setTimeout(() => {
-                            debouncedSearch.value = searchQuery.value;
-                            fetchData();
-                        }, 400);
-                    };
+                const openStatusMenu = (item) => {
+                    activeMenuId.value = (activeMenuId.value === item.id) ? null : item.id;
+                };
 
-                    const openStatusMenu = (item) => {
-                        activeMenuId.value = (activeMenuId.value === item.id) ? null : item.id;
-                    };
+                const getStatusColor = (status) => {
+                    switch (status) {
+                        case 'NEW': return 'bg-blue-900/40 text-blue-300 border-blue-700/50 hover:bg-blue-800/50';
+                        case 'ARANDI': return 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50 hover:bg-yellow-800/50';
+                        case 'RANDEVU': return 'bg-green-900/40 text-green-300 border-green-700/50 hover:bg-green-800/50';
+                        case 'KAPANDI': return 'bg-gray-700/40 text-gray-400 border-gray-600/50 hover:bg-gray-600/50';
+                        case 'SPAM': return 'bg-red-900/40 text-red-300 border-red-700/50 hover:bg-red-800/50';
+                        default: return 'bg-gray-800 text-gray-400 border-gray-700';
+                    }
+                };
 
-                    const getStatusColor = (status) => {
-                        switch (status) {
-                            case 'NEW': return 'bg-blue-900/40 text-blue-300 border-blue-700/50 hover:bg-blue-800/50';
-                            case 'ARANDI': return 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50 hover:bg-yellow-800/50';
-                            case 'RANDEVU': return 'bg-green-900/40 text-green-300 border-green-700/50 hover:bg-green-800/50';
-                            case 'KAPANDI': return 'bg-gray-700/40 text-gray-400 border-gray-600/50 hover:bg-gray-600/50';
-                            case 'SPAM': return 'bg-red-900/40 text-red-300 border-red-700/50 hover:bg-red-800/50';
-                            default: return 'bg-gray-800 text-gray-400 border-gray-700';
-                        }
-                    };
+                const isStaleNew = (item) => {
+                    if (item.status !== 'NEW') return false;
+                    const date = new Date(item.date);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    return diffMs > 24 * 60 * 60 * 1000;
+                };
 
-                    const isStaleNew = (item) => {
-                        if (item.status !== 'NEW') return false;
-                        const date = new Date(item.date);
-                        const now = new Date();
-                        const diffMs = now - date;
-                        return diffMs > 24 * 60 * 60 * 1000;
-                    };
+                const cleanPhone = (phone) => {
+                    return String(phone).replace(/\D/g, '');
+                };
 
-                    const cleanPhone = (phone) => {
-                        return String(phone).replace(/\D/g, '');
-                    };
+                const timeAgo = (dateStr) => {
+                    if (!dateStr) return "";
+                    const date = new Date(dateStr);
+                    const now = new Date();
+                    const diff = (now - date) / 1000;
 
-                    const timeAgo = (dateStr) => {
-                        if (!dateStr) return "";
-                        const date = new Date(dateStr);
-                        const now = new Date();
-                        const diff = (now - date) / 1000;
+                    if (diff < 60) return "Az önce";
+                    if (diff < 3600) return Math.floor(diff / 60) + " dk önce";
+                    if (diff < 86400) return Math.floor(diff / 3600) + " saat önce";
+                    if (diff < 604800) return Math.floor(diff / 86400) + " gün önce";
+                    return date.toLocaleDateString("tr-TR", { day: 'numeric', month: 'short' });
+                };
 
-                        if (diff < 60) return "Az önce";
-                        if (diff < 3600) return Math.floor(diff / 60) + " dk önce";
-                        if (diff < 86400) return Math.floor(diff / 3600) + " saat önce";
-                        if (diff < 604800) return Math.floor(diff / 86400) + " gün önce";
-                        return date.toLocaleDateString("tr-TR", { day: 'numeric', month: 'short' });
-                    };
+                const formatFullDate = (s) => {
+                    if (!s) return "";
+                    try {
+                        return new Date(s).toLocaleString("tr-TR");
+                    } catch (e) { return ""; }
+                };
 
-                    const formatFullDate = (s) => {
-                        if (!s) return "";
-                        try {
-                            return new Date(s).toLocaleString("tr-TR");
-                        } catch (e) { return ""; }
-                    };
+                const formatTime = (s) => {
+                    if (!s) return "";
+                    try {
+                        return new Date(s).toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' });
+                    } catch (e) { return ""; }
+                };
 
-                    const formatTime = (s) => {
-                        if (!s) return "";
-                        try {
-                            return new Date(s).toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' });
-                        } catch (e) { return ""; }
-                    };
+                onMounted(() => {
+                    checkAuth();
+                });
 
-                    onMounted(() => {
-                        checkAuth();
-                    });
-
-                    return {
-                        loading, isLoggedIn, password, error, submitting,
-                        handoffs, stats, dashboardStats, loadingData,
-                        filterStatus, filterDays, filterCategory, filterTodayNew, searchQuery, debounceSearch,
-                        activeMenuId, statusOptions,
-                        showNoteModal, tempNote, currentItem,
-                        showChatModal, chatMessages, chatLoading, chatContainer, // Chat state
-                        login, logout, fetchData, fetchStats, toggleTodayNew,
-                        updateStatus, openStatusMenu, getStatusColor,
-                        openNoteModal, closeNoteModal, saveNote,
-                        openChat, closeChatModal, // Chat Actions
-                        cleanPhone, timeAgo, formatFullDate, formatTime, isStaleNew,
-                        // Sources
-                        currentTab,
-                        sources,
-                        newSourceUrl,
-                        addingSource,
-                        testQuery,
-                        testResults,
-                        fetchSources,
-                        addSource,
-                        toggleSource,
-                        deleteSource,
-                        indexSource,
-                        performTestSearch
-                    };
-                }
-            }).mount('#app');
-        </script>
+                return {
+                    loading, isLoggedIn, password, error, submitting,
+                    handoffs, stats, dashboardStats, loadingData,
+                    filterStatus, filterDays, filterCategory, filterTodayNew, searchQuery, debounceSearch,
+                    activeMenuId, statusOptions,
+                    showNoteModal, tempNote, currentItem,
+                    showChatModal, chatMessages, chatLoading, chatContainer, // Chat state
+                    login, logout, fetchData, fetchStats, toggleTodayNew,
+                    updateStatus, openStatusMenu, getStatusColor,
+                    openNoteModal, closeNoteModal, saveNote,
+                    openChat, closeChatModal, // Chat Actions
+                    cleanPhone, timeAgo, formatFullDate, formatTime, isStaleNew,
+                    // Sources
+                    currentTab,
+                    sources,
+                    newSourceUrl,
+                    addingSource,
+                    testQuery,
+                    testResults,
+                    fetchSources,
+                    addSource,
+                    toggleSource,
+                    deleteSource,
+                    indexSource,
+                    performTestSearch
+                };
+            }
+        }).mount('#app');
+    </script>
 
 </body>
 
