@@ -195,3 +195,56 @@ export async function logChatMessage({
     console.error("[db] connection error:", e);
   }
 }
+
+/* ================== VECTOR SEARCH (Memory-based Fallback) ================== */
+
+function cosineSimilarity(vecA, vecB) {
+  let dotProduct = 0;
+  let magnitudeA = 0;
+  let magnitudeB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    magnitudeA += vecA[i] * vecA[i];
+    magnitudeB += vecB[i] * vecB[i];
+  }
+  magnitudeA = Math.sqrt(magnitudeA);
+  magnitudeB = Math.sqrt(magnitudeB);
+  return (magnitudeA && magnitudeB) ? dotProduct / (magnitudeA * magnitudeB) : 0;
+}
+
+export async function searchVectors(brandKey, queryEmbedding, limit = 5) {
+  const client = await pool.connect();
+  try {
+    // 1. Fetch ALL embeddings for this brand
+    // Note: If data grows large, this will be slow. Move to pgvector later.
+    const res = await client.query(`
+      SELECT
+        se.embedding,
+        sc.content,
+        s.url
+      FROM source_embeddings se
+      JOIN source_chunks sc ON se.chunk_id = sc.id
+      JOIN sources s ON sc.source_id = s.id
+      WHERE s.brand_key = $1
+    `, [brandKey]);
+
+    // 2. Calculate similarity in memory
+    const candidates = res.rows.map(row => {
+      // Postgres JSONB array comes back as standard JS array
+      const embedding = row.embedding; 
+      const score = cosineSimilarity(queryEmbedding, embedding);
+      return { ...row, score };
+    });
+
+    // 3. Sort by score (descending) & Slice
+    candidates.sort((a, b) => b.score - a.score);
+    return candidates.slice(0, limit);
+
+  } catch (e) {
+    console.error("[db] searchVectors error:", e);
+    return [];
+  } finally {
+    client.release();
+  }
+}
+
