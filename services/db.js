@@ -76,7 +76,35 @@ export async function ensureTables() {
         ON conversations(session_id);
 
       CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
+      CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
         ON messages(conversation_id);
+
+      -- SOURCES (Web Knowledge Base)
+      CREATE TABLE IF NOT EXISTS sources (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          brand_key TEXT NOT NULL,
+          url TEXT NOT NULL,
+          status TEXT DEFAULT 'idle', -- 'idle', 'indexing', 'error'
+          last_indexed_at TIMESTAMPTZ,
+          last_error TEXT,
+          created_at TIMESTAMPTZ DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS source_chunks (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
+          brand_key TEXT NOT NULL,
+          content TEXT,
+          created_at TIMESTAMPTZ DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS source_embeddings (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          chunk_id UUID REFERENCES source_chunks(id) ON DELETE CASCADE,
+          brand_key TEXT NOT NULL,
+          embedding JSONB, -- store as array for now, can be vector(1536) if pgvector enabled
+          created_at TIMESTAMPTZ DEFAULT now()
+      );
     `);
 
     console.log("[db] tablo kontrolü / migration / index tamam ✅");
