@@ -108,7 +108,8 @@ export async function ensureTables() {
 
       -- 4) Schema Migration (Yeni kolonlar)
       ALTER TABLE sources
-        ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT true;
+        ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT true,
+        ADD COLUMN IF NOT EXISTS chunk_count INTEGER DEFAULT 0;
     `);
 
     console.log("[db] tablo kontrolü / migration / index tamam ✅");
@@ -307,7 +308,7 @@ export async function toggleSource(id, enabled) {
   }
 }
 
-export async function updateSourceStatus(id, { status, last_error }) {
+export async function updateSourceStatus(id, { status, last_error, last_indexed_at, chunk_count }) {
   const client = await pool.connect();
   try {
     // Dinamik set oluşturma (basit versiyon)
@@ -322,6 +323,14 @@ export async function updateSourceStatus(id, { status, last_error }) {
     if (last_error !== undefined) {
       fields.push(`last_error = $${idx++}`);
       values.push(last_error);
+    }
+    if (last_indexed_at !== undefined) {
+      fields.push(`last_indexed_at = $${idx++}`);
+      values.push(last_indexed_at);
+    }
+    if (chunk_count !== undefined) {
+      fields.push(`chunk_count = $${idx++}`);
+      values.push(chunk_count);
     }
 
     if (fields.length === 0) return null;
@@ -360,7 +369,7 @@ export async function clearSourceChunks(sourceId) {
   }
 }
 
-export async function saveSourceChunks(sourceId, chunks) {
+export async function saveSourceChunks(sourceId, brandKey, chunks) {
   // chunks: [{ content, embedding: [...] }, ...]
   const client = await pool.connect();
   try {
@@ -371,17 +380,16 @@ export async function saveSourceChunks(sourceId, chunks) {
       const cRes = await client.query(`
         INSERT INTO source_chunks (source_id, brand_key, content)
         VALUES ($1, $2, $3)
-        RETURNING id, brand_key
-      `, [sourceId, chunk.brand_key || 'unknown', chunk.content]);
+        RETURNING id
+      `, [sourceId, brandKey, chunk.content]);
 
       const chunkId = cRes.rows[0].id;
-      const bKey = cRes.rows[0].brand_key;
 
       if (chunk.embedding) {
         await client.query(`
             INSERT INTO source_embeddings (chunk_id, brand_key, embedding)
             VALUES ($1, $2, $3)
-          `, [chunkId, bKey, JSON.stringify(chunk.embedding)]);
+          `, [chunkId, brandKey, JSON.stringify(chunk.embedding)]);
       }
     }
 
