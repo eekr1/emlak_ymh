@@ -76,7 +76,6 @@ export async function ensureTables() {
         ON conversations(session_id);
 
       CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
-      CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
         ON messages(conversation_id);
 
       -- SOURCES (Web Knowledge Base)
@@ -110,6 +109,9 @@ export async function ensureTables() {
       ALTER TABLE sources
         ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT true,
         ADD COLUMN IF NOT EXISTS chunk_count INTEGER DEFAULT 0;
+
+      ALTER TABLE source_chunks
+        ADD COLUMN IF NOT EXISTS chunk_index INTEGER;
     `);
 
     console.log("[db] tablo kontrolü / migration / index tamam ✅");
@@ -376,12 +378,13 @@ export async function saveSourceChunks(sourceId, brandKey, chunks) {
     await client.query("BEGIN");
 
     // 1. Chunk'ları ve embeddingleri ekle
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
       const cRes = await client.query(`
-        INSERT INTO source_chunks (source_id, brand_key, content)
-        VALUES ($1, $2, $3)
+        INSERT INTO source_chunks (source_id, brand_key, content, chunk_index)
+        VALUES ($1, $2, $3, $4)
         RETURNING id
-      `, [sourceId, brandKey, chunk.content]);
+      `, [sourceId, brandKey, chunk.content, i]);
 
       const chunkId = cRes.rows[0].id;
 
